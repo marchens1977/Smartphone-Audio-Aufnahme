@@ -149,7 +149,7 @@ public class MainActivity extends Activity {
         tempoTitel.setPadding(dp(4), dp(10), 0, 0);
         bereichVorlesen.addView(tempoTitel);
         LinearLayout tempoReihe = new LinearLayout(this);
-        String[] tempoNamen = {"🐢 Langsam", "Normal", "🐇 Schnell"};
+        String[] tempoNamen = {"🐢\nLangsam", "🚶\nNormal", "🐇\nSchnell"};
         for (int i = 0; i < 3; i++) {
             final int nr = i;
             tempoKnoepfe[i] = aktionsKnopf(tempoNamen[i], v -> setzeTempo(nr));

@@ -88,7 +88,7 @@ Die Spracherkennung braucht **Internet** (sie läuft über die Spracherkennung d
 1. In der **Claude-App** lange auf Claudes Antwort tippen → **Kopieren**.
    (Auch nach einem Gespräch im Sprachmodus steht die Antwort als Text im Chat.)
 2. In dieser App oben **Vorlesen** wählen und **📋 Einfügen** tippen.
-3. Tempo wählen: **🐢 Langsam**, **Normal** oder **🐇 Schnell**.
+3. Tempo wählen: **🐢 Langsam**, **🚶 Normal** oder **🐇 Schnell**.
 4. **▶ Anhören** liest den Text sofort vor (zum Probehören, ■ Stopp beendet).
 5. **💾 Als Aufnahme speichern** macht daraus eine Tondatei. Sie erscheint unten in **Meine Aufnahmen**
    (Name `Vorlesen_…m4a`) und lässt sich mit **📤 Senden** per WhatsApp oder E-Mail verschicken.
