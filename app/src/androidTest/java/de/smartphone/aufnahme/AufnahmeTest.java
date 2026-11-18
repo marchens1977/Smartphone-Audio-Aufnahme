@@ -133,13 +133,16 @@ public class AufnahmeTest {
     @Test
     public void wavWirdZuM4a() throws Exception {
         File a = schreibeWav("a.wav", 22050, 22050), b = schreibeWav("b.wav", 22050, 22050);
-        File ziel = new File(ctx().getCacheDir(), "wav-test.m4a");
-        Vorleser.wavZuM4a(Arrays.asList(a, b), ziel);
-        MediaMetadataRetriever mmr = new MediaMetadataRetriever();
-        mmr.setDataSource(ziel.getPath());
-        long dauer = Long.parseLong(mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
-        mmr.release();
-        assertTrue("Dauer war " + dauer, dauer > 1800 && dauer < 2300);
+        for (int runde = 1; runde <= 5; runde++) {   // mehrmals, damit seltene Fehler auffallen
+            File ziel = new File(ctx().getCacheDir(), "wav-test.m4a");
+            ziel.delete();
+            Vorleser.wavZuM4a(Arrays.asList(a, b), ziel);
+            MediaMetadataRetriever mmr = new MediaMetadataRetriever();
+            mmr.setDataSource(ziel.getPath());
+            long dauer = Long.parseLong(mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
+            mmr.release();
+            assertTrue("Runde " + runde + ": Dauer war " + dauer, dauer > 1900 && dauer < 2200);
+        }
     }
 
     private File schreibeWav(String name, int rate, int abtastwerte) throws Exception {

@@ -58,18 +58,21 @@ class AacSchreiber {
         return geschriebeneBytes / (2L * kanaele) * 1_000_000L / abtastrate;
     }
 
-    /** Holt fertig umgewandelte Stuecke ab und schreibt sie in die Datei. */
+    /** Holt fertig umgewandelte Stuecke ab und schreibt sie in die Datei.
+     *  bisZumEnde = true: so lange warten, bis der Umwandler "fertig" meldet. */
     private void leeren(boolean bisZumEnde) {
-        int versuche = 0;
+        int leereVersuche = 0;
         while (true) {
             int index = codec.dequeueOutputBuffer(info, bisZumEnde ? 10000 : 0);
             if (index == MediaCodec.INFO_TRY_AGAIN_LATER) {
-                if (!bisZumEnde || ++versuche > 300) return;   // hoechstens ca. 3 Sekunden warten
+                // Beim Abschluss bis zu 10 Sekunden ohne neue Daten warten, sonst sofort weiter
+                if (!bisZumEnde || ++leereVersuche > 1000) return;
             } else if (index == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
                 spur = muxer.addTrack(codec.getOutputFormat());
                 muxer.start();
                 muxerLaeuft = true;
             } else if (index >= 0) {
+                leereVersuche = 0;
                 ByteBuffer puffer = codec.getOutputBuffer(index);
                 boolean konfig = (info.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0;
                 if (!konfig && info.size > 0 && muxerLaeuft) {
@@ -83,14 +86,21 @@ class AacSchreiber {
         }
     }
 
-    /** Aufnahme abschliessen. Erst danach ist die Datei abspielbar. */
+    /** Aufnahme abschliessen. Erst danach ist die Datei abspielbar.
+     *  Wichtig: Erst wenn das "Ende"-Zeichen angenommen wurde, kommen auch die letzten Stuecke heraus. */
     void beenden() {
         try {
-            int index = codec.dequeueInputBuffer(100000);
-            if (index >= 0) {
-                codec.queueInputBuffer(index, 0, 0, zeitstempel(), MediaCodec.BUFFER_FLAG_END_OF_STREAM);
-                leeren(true);
+            boolean endeGesendet = false;
+            for (int versuch = 0; versuch < 1000 && !endeGesendet; versuch++) {
+                int index = codec.dequeueInputBuffer(10000);
+                if (index >= 0) {
+                    codec.queueInputBuffer(index, 0, 0, zeitstempel(), MediaCodec.BUFFER_FLAG_END_OF_STREAM);
+                    endeGesendet = true;
+                } else {
+                    leeren(false);   // Platz schaffen: fertige Stuecke abholen
+                }
             }
+            leeren(true);
         } finally {
             try { codec.stop(); } catch (Exception ignoriert) { }
             codec.release();
