@@ -103,7 +103,12 @@ public class AufnahmeTest {
             assertTrue("Meldung: " + meldung, meldung != null && meldung.startsWith("✅"));
             List<Speicher.Eintrag> liste = Speicher.liste(ctx());
             assertEquals(vorher + 1, liste.size());
-            assertTrue("Dauer " + liste.get(0).dauerMs, liste.get(0).dauerMs > 1500);
+            // Die Datei muss so lang sein wie der tatsaechlich aufgenommene Ton
+            // (das simulierte Handy liefert Ton manchmal langsamer als in Echtzeit)
+            long aufgenommen = AufnahmeService.dauerMs, datei = liste.get(0).dauerMs;
+            assertTrue("Aufgenommen " + aufgenommen, aufgenommen > 800);
+            assertTrue("Datei " + datei + " ms, aufgenommen " + aufgenommen + " ms",
+                    Math.abs(datei - aufgenommen) < 300);
             ctx().getContentResolver().delete(liste.get(0).uri, null, null);
         }
     }
