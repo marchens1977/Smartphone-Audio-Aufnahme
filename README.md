@@ -12,7 +12,7 @@ Alles bleibt **auf dem Handy**. Es wird kein Computer und kein Raspberry Pi gebr
 Jede Aufnahme lässt sich mit **📤 Senden** per WhatsApp, E-Mail usw. verschicken.
 Design in den Farben der New York Mets (Blau und Orange).
 
-![Vorschau](vorschau.png)
+<img src="vorschau.png" width="250" alt="Aufnehmen"> <img src="vorschau-diktat.png" width="250" alt="Diktieren">
 
 ## Installieren (einmalig, am Handy)
 
@@ -27,7 +27,7 @@ ob du das erlaubst.
    **Chrome** einschalten („Berechtigung von dieser Quelle“) → zurück.
 5. **Installieren** tippen. Falls „Google Play Protect“ warnt: **Weitere Details** → **Trotzdem installieren**.
    (Die Warnung kommt, weil die App nicht aus dem Play Store ist.)
-6. **Öffnen**. Die App heißt **Smartphone-Aufnahme** (rotes Mikrofon-Symbol).
+6. **Öffnen**. Die App heißt **Smartphone-Aufnahme** (oranges Mikrofon auf blauem Kreis).
 
 **Neue Version installieren:** einfach denselben Link nochmal öffnen und installieren.
 Deine Aufnahmen bleiben erhalten.
@@ -36,19 +36,19 @@ Deine Aufnahmen bleiben erhalten.
 
 ### 🎙 Stimme aufnehmen
 1. Oben **Stimme** wählen.
-2. Roten Knopf tippen. Beim ersten Mal: Mikrofon **Zulassen** (und Benachrichtigungen **Zulassen**).
+2. Orangen Knopf (●) tippen. Beim ersten Mal: Mikrofon **Zulassen** (und Benachrichtigungen **Zulassen**).
 3. Sprechen. Uhr und Balken zeigen, dass aufgenommen wird. **⏸ Pause** ist möglich.
-4. Grauen Knopf (⏹) tippen → die Aufnahme wird gespeichert und erscheint oben in der Liste.
+4. Grauen Knopf (■) tippen → die Aufnahme wird gespeichert und erscheint oben in der Liste.
 
 Der Bildschirm darf dabei ausgehen. Oben in der Benachrichtigungsleiste siehst du „Aufnahme läuft“
 und kannst dort auch **Pause** oder **Stopp** tippen.
 
 ### 🎵 Medienaudio aufnehmen
 1. Oben **Medien** wählen.
-2. Roten Knopf tippen. Android fragt, ob die App aufnehmen darf → **Jetzt starten**.
+2. Orangen Knopf (●) tippen. Android fragt, ob die App aufnehmen darf → **Jetzt starten**.
    (Bei neueren Handys: „Gesamter Bildschirm“ wählen.) Das fragt Android aus Sicherheitsgründen jedes Mal.
 3. Jetzt die andere App öffnen und dort abspielen (Video, Podcast, Sprachnachricht …).
-4. Zum Beenden zurück in die App und ⏹ tippen, oder in der Benachrichtigung **Stopp**.
+4. Zum Beenden zurück in die App und ■ tippen, oder in der Benachrichtigung **Stopp**.
 
 **Wichtig – Grenzen von Android:**
 - Aufgenommen wird nur der **Ton** (kein Bild), und **ohne** Mikrofon. Es ist also eine saubere Aufnahme.
@@ -69,7 +69,7 @@ Dann lieber WhatsApp oder Google Drive nehmen.
 
 ### ⌨ Diktieren
 1. Oben **Diktieren** wählen.
-2. Grünes Mikrofon tippen und sprechen. Der Text erscheint im weißen Feld. Die App hört weiter zu, bis du ⏹ tippst.
+2. Orangen Mikrofon-Knopf tippen und sprechen. Der Text erscheint im weißen Feld. Die App hört weiter zu, bis du ■ tippst.
 3. Satzzeichen sprechen: „Punkt“, „Komma“, „Fragezeichen“, „Ausrufezeichen“, „Doppelpunkt“,
    „neue Zeile“, „neuer Absatz“.
 4. Den Text kannst du selbst korrigieren (ins Feld tippen).

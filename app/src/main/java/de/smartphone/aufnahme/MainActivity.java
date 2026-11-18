@@ -100,7 +100,7 @@ public class MainActivity extends Activity {
 
         // --- Bereich Aufnahme (Stimme und Medien)
         bereichAufnahme = spalte();
-        aufnahmeKnopf = rundKnopf("⏺");
+        aufnahmeKnopf = rundKnopf("●");
         aufnahmeKnopf.setOnClickListener(v -> aufnahmeKnopfGedrueckt());
         bereichAufnahme.addView(aufnahmeKnopf, mittig(dp(170), dp(170), dp(16)));
         uhr = text("0:00", 40, Color.WHITE);
@@ -209,14 +209,14 @@ public class MainActivity extends Activity {
         bereichAufnahme.setVisibility(m.equals("Diktat") ? View.GONE : View.VISIBLE);
         bereichDiktat.setVisibility(m.equals("Diktat") ? View.VISIBLE : View.GONE);
         if (m.equals(AufnahmeService.ART_MIKRO)) {
-            info.setText("Nimmt deine Stimme mit dem Mikrofon auf. Roter Knopf = Start, nochmal = Stopp. "
+            info.setText("Nimmt deine Stimme mit dem Mikrofon auf. Oranger Knopf = Start, nochmal = Stopp. "
                     + "Läuft auch bei ausgeschaltetem Bildschirm weiter.");
         } else if (m.equals(AufnahmeService.ART_MEDIEN)) {
             info.setText("Nimmt den Ton auf, den das Handy gerade abspielt (z. B. Video, Radio-App). "
                     + "Android fragt beim Start, ob du die Aufnahme erlaubst → „Jetzt starten“. "
                     + "Manche Apps (z. B. Netflix, Spotify) sperren die Aufnahme – dann bleibt es still.");
         } else {
-            info.setText("Sprich – dein Text erscheint unten. Danach kopieren, teilen oder als Datei speichern.");
+            info.setText("Sprich – dein Text erscheint unten. Danach kopieren, senden oder als Datei speichern.");
         }
         if (!AufnahmeService.laeuft) status.setText("Bereit.");
     }
@@ -268,7 +268,7 @@ public class MainActivity extends Activity {
         @Override
         public void run() {
             boolean laeuft = AufnahmeService.laeuft;
-            aufnahmeKnopf.setText(laeuft ? "⏹" : "⏺");
+            aufnahmeKnopf.setText(laeuft ? "■" : "●");
             aufnahmeKnopf.setBackground(oval(laeuft ? FARBE_GRAU : FARBE_ROT));
             pauseKnopf.setVisibility(laeuft ? View.VISIBLE : View.INVISIBLE);
             pauseKnopf.setText(AufnahmeService.pausiert ? "▶ Weiter" : "⏸ Pause");
@@ -401,7 +401,7 @@ public class MainActivity extends Activity {
         mitErlaubnis(() -> {
             diktatAktiv = true;
             diktatKnopf.setBackground(oval(FARBE_GRAU));
-            diktatKnopf.setText("⏹");
+            diktatKnopf.setText("■");
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             hoereZu();
         });
