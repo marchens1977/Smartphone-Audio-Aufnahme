@@ -21,6 +21,8 @@ import android.os.Looper;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.UtteranceProgressListener;
 import android.text.InputType;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -58,11 +60,13 @@ public class MainActivity extends Activity {
     private String modus;
     private Runnable nachErlaubnis;
 
-    private Button knopfStimme, knopfMedien, knopfDiktat, aufnahmeKnopf, pauseKnopf, diktatKnopf;
-    private TextView info, uhr, status, diktatStatus;
+    private Button knopfStimme, knopfMedien, knopfDiktat, knopfVorlesen, aufnahmeKnopf, pauseKnopf, diktatKnopf,
+            probeKnopf, speichernKnopf;
+    private final Button[] tempoKnoepfe = new Button[3];
+    private TextView info, uhr, status, diktatStatus, vorleseStatus;
     private ProgressBar pegel;
-    private LinearLayout bereichAufnahme, bereichDiktat, liste;
-    private EditText diktatText;
+    private LinearLayout bereichAufnahme, bereichDiktat, bereichVorlesen, bereichListe, liste;
+    private EditText diktatText, vorleseText;
 
     private MediaPlayer spieler;
     private Uri spielt;
@@ -70,6 +74,10 @@ public class MainActivity extends Activity {
 
     private SpeechRecognizer erkenner;
     private boolean diktatAktiv = false;
+
+    private TextToSpeech stimme;
+    private boolean stimmeBereit = false, liestVor = false, speichert = false;
+    private static final float[] TEMPO = {0.8f, 1.0f, 1.25f};
 
     // ------------------------------------------------------------ Aufbau
     @Override
@@ -90,9 +98,11 @@ public class MainActivity extends Activity {
         knopfStimme = modusKnopf("🎙\nStimme", AufnahmeService.ART_MIKRO);
         knopfMedien = modusKnopf("🎵\nMedien", AufnahmeService.ART_MEDIEN);
         knopfDiktat = modusKnopf("⌨\nDiktieren", "Diktat");
+        knopfVorlesen = modusKnopf("🔊\nVorlesen", "Vorlesen");
         modi.addView(knopfStimme, gewicht());
         modi.addView(knopfMedien, gewicht());
         modi.addView(knopfDiktat, gewicht());
+        modi.addView(knopfVorlesen, gewicht());
         seite.addView(modi);
 
         info = text("", 15, FARBE_HELL);
@@ -118,17 +128,63 @@ public class MainActivity extends Activity {
                 LinearLayout.LayoutParams.WRAP_CONTENT, dp(4)));
         status = text("Bereit.", 17, Color.WHITE);
         bereichAufnahme.addView(status);
+        seite.addView(bereichAufnahme);
+
+        // --- Bereich Vorlesen
+        bereichVorlesen = spalte();
+        vorleseText = new EditText(this);
+        textfeld(vorleseText, "Hier Text einfügen, z. B. eine Antwort von Claude: im Claude-Chat lange auf die "
+                + "Antwort tippen → Kopieren, dann hier auf „📋 Einfügen“.");
+        vorleseText.setText(einstellungen.getString("vorlesen", ""));
+        LinearLayout.LayoutParams vlp = new LinearLayout.LayoutParams(-1, -2);
+        vlp.topMargin = dp(12);
+        bereichVorlesen.addView(vorleseText, vlp);
+        LinearLayout vreihe1 = new LinearLayout(this);
+        vreihe1.setPadding(0, dp(8), 0, 0);
+        vreihe1.addView(aktionsKnopf("📋 Einfügen", v -> einfuegen()), gewicht());
+        vreihe1.addView(aktionsKnopf("🗑 Leeren", v -> leereVorleseText()), gewicht());
+        bereichVorlesen.addView(vreihe1);
+        TextView tempoTitel = text("Tempo:", 15, FARBE_HELL);
+        tempoTitel.setGravity(Gravity.START);
+        tempoTitel.setPadding(dp(4), dp(10), 0, 0);
+        bereichVorlesen.addView(tempoTitel);
+        LinearLayout tempoReihe = new LinearLayout(this);
+        String[] tempoNamen = {"🐢 Langsam", "Normal", "🐇 Schnell"};
+        for (int i = 0; i < 3; i++) {
+            final int nr = i;
+            tempoKnoepfe[i] = aktionsKnopf(tempoNamen[i], v -> setzeTempo(nr));
+            tempoReihe.addView(tempoKnoepfe[i], gewicht());
+        }
+        bereichVorlesen.addView(tempoReihe);
+        LinearLayout vreihe2 = new LinearLayout(this);
+        vreihe2.setPadding(0, dp(8), 0, 0);
+        probeKnopf = aktionsKnopf("▶ Anhören", v -> probehoeren());
+        speichernKnopf = aktionsKnopf("💾 Als Aufnahme speichern", v -> vorleseSpeichern());
+        speichernKnopf.setBackground(rund(METS_ORANGE, dp(8)));
+        vreihe2.addView(probeKnopf, gewicht());
+        LinearLayout.LayoutParams breit = gewicht();
+        breit.weight = 1.6f;
+        vreihe2.addView(speichernKnopf, breit);
+        bereichVorlesen.addView(vreihe2);
+        vorleseStatus = text("Die Handy-Stimme liest deinen Text vor und speichert ihn als Tonaufnahme.", 15, Color.WHITE);
+        vorleseStatus.setPadding(0, dp(8), 0, 0);
+        bereichVorlesen.addView(vorleseStatus);
+        seite.addView(bereichVorlesen);
+        setzeTempo(einstellungen.getInt("tempo", 1));
+
+        // --- Liste der Aufnahmen (bei Stimme, Medien und Vorlesen)
+        bereichListe = spalte();
         TextView ueberschrift = text("Meine Aufnahmen", 18, Color.WHITE);
         ueberschrift.setTypeface(null, Typeface.BOLD);
         ueberschrift.setGravity(Gravity.START);
         ueberschrift.setPadding(0, dp(20), 0, dp(4));
-        bereichAufnahme.addView(ueberschrift);
-        TextView ort = text("Gespeichert im Handy unter: Musik → Smartphone-Aufnahme", 13, Color.GRAY);
+        bereichListe.addView(ueberschrift);
+        TextView ort = text("Gespeichert im Handy unter: Musik → Smartphone-Aufnahme", 13, FARBE_HELL);
         ort.setGravity(Gravity.START);
-        bereichAufnahme.addView(ort);
+        bereichListe.addView(ort);
         liste = spalte();
-        bereichAufnahme.addView(liste);
-        seite.addView(bereichAufnahme);
+        bereichListe.addView(liste);
+        seite.addView(bereichListe);
 
         // --- Bereich Diktieren
         bereichDiktat = spalte();
@@ -138,15 +194,7 @@ public class MainActivity extends Activity {
         diktatStatus = text("Tippe auf das Mikrofon und sprich.", 16, Color.WHITE);
         bereichDiktat.addView(diktatStatus);
         diktatText = new EditText(this);
-        diktatText.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE
-                | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
-        diktatText.setMinLines(6);
-        diktatText.setGravity(Gravity.TOP | Gravity.START);
-        diktatText.setTextColor(Color.BLACK);
-        diktatText.setBackgroundColor(Color.WHITE);
-        diktatText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
-        diktatText.setPadding(dp(10), dp(10), dp(10), dp(10));
-        diktatText.setHint("Hier erscheint dein Text. Du kannst ihn auch selbst ändern.");
+        textfeld(diktatText, "Hier erscheint dein Text. Du kannst ihn auch selbst ändern.");
         diktatText.setText(einstellungen.getString("diktat", ""));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
         lp.topMargin = dp(12);
@@ -187,9 +235,17 @@ public class MainActivity extends Activity {
     protected void onPause() {
         super.onPause();
         handler.removeCallbacks(aktualisieren);
-        einstellungen.edit().putString("diktat", diktatText.getText().toString()).apply();
+        einstellungen.edit().putString("diktat", diktatText.getText().toString())
+                .putString("vorlesen", vorleseText.getText().toString()).apply();
         stoppeDiktat();
         stoppeWiedergabe();
+        stoppeVorlesen();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (stimme != null && !speichert) stimme.shutdown();
     }
 
     private void setzeModus(String m) {
@@ -203,11 +259,17 @@ public class MainActivity extends Activity {
         knopfStimme.setBackground(rund(m.equals(AufnahmeService.ART_MIKRO) ? FARBE_GELB : FARBE_KARTE, dp(8)));
         knopfMedien.setBackground(rund(m.equals(AufnahmeService.ART_MEDIEN) ? FARBE_GELB : FARBE_KARTE, dp(8)));
         knopfDiktat.setBackground(rund(m.equals("Diktat") ? FARBE_GELB : FARBE_KARTE, dp(8)));
+        knopfVorlesen.setBackground(rund(m.equals("Vorlesen") ? FARBE_GELB : FARBE_KARTE, dp(8)));
+        knopfVorlesen.setTextColor(m.equals("Vorlesen") ? Color.WHITE : FARBE_HELL);
         knopfStimme.setTextColor(m.equals(AufnahmeService.ART_MIKRO) ? Color.WHITE : FARBE_HELL);
         knopfMedien.setTextColor(m.equals(AufnahmeService.ART_MEDIEN) ? Color.WHITE : FARBE_HELL);
         knopfDiktat.setTextColor(m.equals("Diktat") ? Color.WHITE : FARBE_HELL);
-        bereichAufnahme.setVisibility(m.equals("Diktat") ? View.GONE : View.VISIBLE);
+        boolean aufnahme = m.equals(AufnahmeService.ART_MIKRO) || m.equals(AufnahmeService.ART_MEDIEN);
+        bereichAufnahme.setVisibility(aufnahme ? View.VISIBLE : View.GONE);
         bereichDiktat.setVisibility(m.equals("Diktat") ? View.VISIBLE : View.GONE);
+        bereichVorlesen.setVisibility(m.equals("Vorlesen") ? View.VISIBLE : View.GONE);
+        bereichListe.setVisibility(m.equals("Diktat") ? View.GONE : View.VISIBLE);
+        if (m.equals("Vorlesen")) starteStimme(); else stoppeVorlesen();
         if (m.equals(AufnahmeService.ART_MIKRO)) {
             info.setText("Nimmt deine Stimme mit dem Mikrofon auf. Oranger Knopf = Start, nochmal = Stopp. "
                     + "Läuft auch bei ausgeschaltetem Bildschirm weiter.");
@@ -215,6 +277,9 @@ public class MainActivity extends Activity {
             info.setText("Nimmt den Ton auf, den das Handy gerade abspielt (z. B. Video, Radio-App). "
                     + "Android fragt beim Start, ob du die Aufnahme erlaubst → „Jetzt starten“. "
                     + "Manche Apps (z. B. Netflix, Spotify) sperren die Aufnahme – dann bleibt es still.");
+        } else if (m.equals("Vorlesen")) {
+            info.setText("Text einfügen – das Handy liest ihn vor. Mit „Als Aufnahme speichern“ wird daraus "
+                    + "eine Tondatei, die du anhören und per WhatsApp oder E-Mail senden kannst.");
         } else {
             info.setText("Sprich – dein Text erscheint unten. Danach kopieren, senden oder als Datei speichern.");
         }
@@ -541,6 +606,129 @@ public class MainActivity extends Activity {
                 }).show();
     }
 
+    // ------------------------------------------------------------ Vorlesen
+    private void starteStimme() {
+        if (stimme != null) return;
+        vorleseStatus.setText("Vorlese-Stimme wird vorbereitet …");
+        stimme = new TextToSpeech(this, ergebnis -> {
+            if (ergebnis != TextToSpeech.SUCCESS) {
+                vorleseStatus.setText("Keine Vorlese-Stimme gefunden. Einstellungen → Allgemeine Verwaltung → "
+                        + "Text-zu-Sprache → bevorzugtes Modul wählen (z. B. Google).");
+                stimme = null;
+                return;
+            }
+            int sprache = stimme.setLanguage(Locale.GERMANY);
+            if (sprache == TextToSpeech.LANG_MISSING_DATA || sprache == TextToSpeech.LANG_NOT_SUPPORTED) {
+                vorleseStatus.setText("Die deutsche Stimme fehlt. Einstellungen → Allgemeine Verwaltung → "
+                        + "Text-zu-Sprache → ⚙ beim Modul → Sprachdaten installieren → Deutsch.");
+                return;
+            }
+            stimme.setSpeechRate(TEMPO[einstellungen.getInt("tempo", 1)]);
+            stimmeBereit = true;
+            vorleseStatus.setText("Bereit. Text einfügen, dann „▶ Anhören“ oder „💾 Als Aufnahme speichern“.");
+        });
+    }
+
+    private String vorleseTextOderHinweis() {
+        String t = vorleseText.getText().toString().trim();
+        if (t.isEmpty()) {
+            vorleseStatus.setText("Erst einen Text einfügen.");
+            return null;
+        }
+        if (!stimmeBereit) {
+            starteStimme();
+            if (!stimmeBereit) return null;
+        }
+        return t;
+    }
+
+    private void setzeTempo(int nr) {
+        einstellungen.edit().putInt("tempo", nr).apply();
+        for (int i = 0; i < 3; i++) {
+            tempoKnoepfe[i].setBackground(rund(i == nr ? Color.WHITE : FARBE_KNOPF, dp(8)));
+            tempoKnoepfe[i].setTextColor(i == nr ? METS_BLAU : Color.WHITE);
+        }
+        if (stimme != null) stimme.setSpeechRate(TEMPO[nr]);
+    }
+
+    private void probehoeren() {
+        if (liestVor) {
+            stoppeVorlesen();
+            vorleseStatus.setText("Gestoppt.");
+            return;
+        }
+        if (speichert) return;
+        String t = vorleseTextOderHinweis();
+        if (t == null) return;
+        stoppeWiedergabe();
+        stimme.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+            @Override public void onStart(String u) { }
+            @Override public void onDone(String u) { if (u.equals("ende")) runOnUiThread(() -> stoppeVorlesen()); }
+            @Override public void onError(String u) { runOnUiThread(() -> stoppeVorlesen()); }
+        });
+        java.util.List<String> stuecke = Vorleser.teile(t, Math.min(3000, TextToSpeech.getMaxSpeechInputLength() - 100));
+        for (int i = 0; i < stuecke.size(); i++) {
+            stimme.speak(stuecke.get(i), i == 0 ? TextToSpeech.QUEUE_FLUSH : TextToSpeech.QUEUE_ADD, null,
+                    i == stuecke.size() - 1 ? "ende" : "teil" + i);
+        }
+        liestVor = true;
+        probeKnopf.setText("■ Stopp");
+        vorleseStatus.setText("🔊 Liest vor …");
+    }
+
+    private void stoppeVorlesen() {
+        if (liestVor && stimme != null) stimme.stop();
+        liestVor = false;
+        if (probeKnopf != null) probeKnopf.setText("▶ Anhören");
+    }
+
+    private void vorleseSpeichern() {
+        if (speichert) return;
+        String t = vorleseTextOderHinweis();
+        if (t == null) return;
+        stoppeVorlesen();
+        speichert = true;
+        speichernKnopf.setText("⏳ Wird erstellt …");
+        vorleseStatus.setText("Die Aufnahme wird erstellt. Bei langen Texten kann das etwas dauern …");
+        TextToSpeech tts = stimme;
+        new Thread(() -> {
+            String meldung;
+            try {
+                Vorleser.alsAufnahme(this, tts, t);
+                meldung = "✅ Als Aufnahme gespeichert – siehe unten in der Liste. Zum Verschicken: 📤 Senden.";
+            } catch (Exception fehler) {
+                meldung = "Speichern ging nicht: " + fehler.getMessage();
+            }
+            String m = meldung;
+            runOnUiThread(() -> {
+                speichert = false;
+                speichernKnopf.setText("💾 Als Aufnahme speichern");
+                vorleseStatus.setText(m);
+                ladeListe();
+                if (isDestroyed()) tts.shutdown();
+            });
+        }, "Vorlesen").start();
+    }
+
+    private void einfuegen() {
+        ClipData clip = getSystemService(ClipboardManager.class).getPrimaryClip();
+        CharSequence t = clip != null && clip.getItemCount() > 0 ? clip.getItemAt(0).coerceToText(this) : null;
+        if (t == null || t.length() == 0) {
+            vorleseStatus.setText("Die Zwischenablage ist leer. Erst einen Text kopieren.");
+            return;
+        }
+        String bisher = vorleseText.getText().toString();
+        vorleseText.setText(bisher.trim().isEmpty() ? t.toString() : bisher + "\n\n" + t);
+        vorleseStatus.setText("Text eingefügt.");
+    }
+
+    private void leereVorleseText() {
+        if (vorleseText.length() == 0) return;
+        new AlertDialog.Builder(this).setTitle("Text leeren?").setMessage("Der ganze Text wird gelöscht.")
+                .setNegativeButton("Abbrechen", null)
+                .setPositiveButton("Leeren", (d, w) -> vorleseText.setText("")).show();
+    }
+
     // ------------------------------------------------------------ Erlaubnis fuers Mikrofon
     private void mitErlaubnis(Runnable aktion) {
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
@@ -619,11 +807,25 @@ public class MainActivity extends Activity {
         return g;
     }
 
+    private void textfeld(EditText feld, String hinweis) {
+        feld.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE
+                | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        feld.setMinLines(6);
+        feld.setGravity(Gravity.TOP | Gravity.START);
+        feld.setTextColor(Color.BLACK);
+        feld.setHintTextColor(Color.GRAY);
+        feld.setBackgroundColor(Color.WHITE);
+        feld.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
+        feld.setPadding(dp(10), dp(10), dp(10), dp(10));
+        feld.setHint(hinweis);
+    }
+
     private Button modusKnopf(String t, String m) {
         Button b = new Button(this);
         b.setText(t);
         b.setAllCaps(false);
-        b.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        b.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        b.setPadding(0, dp(6), 0, dp(6));
         b.setOnClickListener(v -> setzeModus(m));
         return b;
     }

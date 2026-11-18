@@ -49,6 +49,10 @@ jobs:
             adb shell am start -n de.smartphone.aufnahme/.MainActivity --es modus Diktat
             sleep 4
             adb exec-out screencap -p > bildschirm-diktat.png
+            adb shell am force-stop de.smartphone.aufnahme
+            adb shell am start -n de.smartphone.aufnahme/.MainActivity --es modus Vorlesen
+            sleep 4
+            adb exec-out screencap -p > bildschirm-vorlesen.png
       - name: Bildschirmfoto und Testbericht aufheben
         if: always()
         uses: actions/upload-artifact@v4
@@ -63,6 +67,6 @@ jobs:
         run: |
           cp app/build/outputs/apk/debug/app-debug.apk Smartphone-Aufnahme.apk
           gh release delete neueste-version --yes --cleanup-tag || true
-          gh release create neueste-version Smartphone-Aufnahme.apk bildschirm.png bildschirm-diktat.png --latest \
+          gh release create neueste-version Smartphone-Aufnahme.apk bildschirm.png bildschirm-diktat.png bildschirm-vorlesen.png --latest \
             --title "Smartphone-Aufnahme (neueste Version)" \
             --notes "Zum Installieren am Handy: Smartphone-Aufnahme.apk antippen. Anleitung siehe README."
