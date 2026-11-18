@@ -1,85 +1,109 @@
-# 🔴 Smartphone-Audio-Aufnahme für den Raspberry Pi
+# 🎙 Smartphone-Aufnahme – Android-App
 
-Mit diesem kleinen Programm nimmst du mit deinem Handy Ton auf, zum Beispiel Sprache, Musik oder Notizen.
-Die Aufnahmen werden automatisch auf deinem Raspberry Pi gespeichert.
+Eine kleine App für dein Android-Handy (z. B. Samsung) mit drei Funktionen:
 
-- Kein App-Store nötig: Die „App“ ist eine Webseite, die du am Handy in Chrome öffnest.
-- Auf dem Pi muss nichts Zusätzliches programmiert werden. Es läuft mit dem Python, das schon da ist.
-- Die Aufnahmen landen am Pi im Ordner **Aufnahmen** (in deinem persönlichen Ordner) als **MP3**.
+| Bereich | Was es macht | Gespeichert als |
+|---|---|---|
+| 🎙 **Stimme** | Nimmt auf, was du ins Mikrofon sprichst | `.m4a`-Tondatei |
+| 🎵 **Medien** | Nimmt den Ton auf, den das Handy gerade abspielt (Video, Radio-App, Sprachnachricht …) | `.m4a`-Tondatei |
+| ⌨ **Diktieren** | Wandelt deine Sprache in Text um | Text zum Kopieren/Teilen oder `.txt`-Datei |
+
+Alles bleibt **auf dem Handy**. Es wird kein Computer und kein Raspberry Pi gebraucht.
 
 ![Vorschau](vorschau.png)
 
-## Einrichten / Aktualisieren (einmalig am Raspberry Pi)
+## Installieren (einmalig, am Handy)
 
-1. Öffne am Pi das **Terminal** (schwarzes Fenster-Symbol oben in der Leiste).
-2. Füge diese Zeilen ein (Rechtsklick → Einfügen) und drücke **Enter**:
+Die App kommt nicht aus dem Play Store, sondern direkt von hier. Android fragt deshalb einmal nach,
+ob du das erlaubst.
 
-   ```
-   echo start
-   wget -qO- https://raw.githubusercontent.com/marchens1977/Smartphone-Audio-Aufnahme/main/einrichten.sh | bash
-   echo ende
-   ```
+1. Öffne am Handy in **Chrome** diesen Link:
+   **https://github.com/marchens1977/Smartphone-Audio-Aufnahme/releases/download/neueste-version/Smartphone-Aufnahme.apk**
+2. Chrome fragt eventuell, ob die Datei heruntergeladen werden soll → **Herunterladen** / **Trotzdem herunterladen**.
+3. Tippe unten auf **Öffnen** (oder öffne die Datei über „Eigene Dateien“ → **Downloads**).
+4. Android sagt: „Aus Sicherheitsgründen … unbekannte Apps …“ → **Einstellungen** → Schalter bei
+   **Chrome** einschalten („Berechtigung von dieser Quelle“) → zurück.
+5. **Installieren** tippen. Falls „Google Play Protect“ warnt: **Weitere Details** → **Trotzdem installieren**.
+   (Die Warnung kommt, weil die App nicht aus dem Play Store ist.)
+6. **Öffnen**. Die App heißt **Smartphone-Aufnahme** (rotes Mikrofon-Symbol).
 
-3. Falls nach dem Passwort gefragt wird: dein Pi-Passwort eingeben (man sieht beim Tippen nichts, das ist normal).
-4. Am Ende steht die **Adresse fürs Handy** da, z. B. `https://192.168.178.50:8444`. Schreib sie dir auf.
+**Neue Version installieren:** einfach denselben Link nochmal öffnen und installieren.
+Deine Aufnahmen bleiben erhalten.
 
-Danach startet das Programm jedes Mal automatisch, wenn der Pi hochfährt.
-Adresse vergessen? Startmenü (Himbeere) → **Zubehör** → **Smartphone-Audio-Aufnahme**.
+## Benutzen
 
-Zum **Aktualisieren** auf eine neue Version einfach dieselben Zeilen nochmal einfügen.
+### 🎙 Stimme aufnehmen
+1. Oben **Stimme** wählen.
+2. Roten Knopf tippen. Beim ersten Mal: Mikrofon **Zulassen** (und Benachrichtigungen **Zulassen**).
+3. Sprechen. Uhr und Balken zeigen, dass aufgenommen wird. **⏸ Pause** ist möglich.
+4. Grauen Knopf (⏹) tippen → die Aufnahme wird gespeichert und erscheint in der Liste.
 
-## Am Handy (einmalig)
+Der Bildschirm darf dabei ausgehen. Oben in der Benachrichtigungsleiste siehst du „Aufnahme läuft“
+und kannst dort auch **Pause** oder **Stopp** tippen.
 
-1. Das Handy muss im **selben WLAN** sein wie der Pi.
-2. Öffne **Chrome** und tippe die Adresse vom Pi ein (mit `https://` am Anfang und `:8444` am Ende).
-3. Chrome warnt: „Die Verbindung ist nicht privat“. Das ist hier normal und ungefährlich, weil der Pi sich sein
-   Sicherheits-Zertifikat selbst ausgestellt hat. Tippe auf **Erweitert** → **Weiter zu … (unsicher)**.
-4. Tipp: Im Chrome-Menü (⋮) → **Zum Startbildschirm hinzufügen**. Dann hast du ein Symbol wie bei einer App.
+### 🎵 Medienaudio aufnehmen
+1. Oben **Medien** wählen.
+2. Roten Knopf tippen. Android fragt, ob die App aufnehmen darf → **Jetzt starten**.
+   (Bei neueren Handys: „Gesamter Bildschirm“ wählen.) Das fragt Android aus Sicherheitsgründen jedes Mal.
+3. Jetzt die andere App öffnen und dort abspielen (Video, Podcast, Sprachnachricht …).
+4. Zum Beenden zurück in die App und ⏹ tippen, oder in der Benachrichtigung **Stopp**.
 
-## Aufnehmen
+**Wichtig – Grenzen von Android:**
+- Aufgenommen wird nur der **Ton** (kein Bild), und **ohne** Mikrofon. Es ist also eine saubere Aufnahme.
+- Manche Apps **sperren** die Aufnahme, z. B. Netflix, Spotify, oft auch WhatsApp-Anrufe und Telefonate.
+  Dann ist die Aufnahme still. Das kann keine App umgehen.
+- YouTube im Chrome-Browser, Radio-Apps, Podcasts und die meisten Spiele funktionieren normalerweise.
 
-1. Auf den großen **roten Knopf** tippen. Beim ersten Mal fragt Chrome nach dem Mikrofon → **Zulassen**.
-2. Die Uhr läuft, der grüne Balken zeigt, dass das Mikrofon etwas hört.
-3. **Bildschirm anlassen**, während aufgenommen wird. Die Seite versucht, ihn selbst wach zu halten.
-4. Zum Beenden nochmal auf den Knopf (⏹) tippen.
-5. Die Aufnahme wird zum Pi geschickt. Nach ein paar Sekunden erscheint sie in der Liste als MP3.
+### ⌨ Diktieren
+1. Oben **Diktieren** wählen.
+2. Grünes Mikrofon tippen und sprechen. Der Text erscheint im weißen Feld. Die App hört weiter zu, bis du ⏹ tippst.
+3. Satzzeichen sprechen: „Punkt“, „Komma“, „Fragezeichen“, „Ausrufezeichen“, „Doppelpunkt“,
+   „neue Zeile“, „neuer Absatz“.
+4. Den Text kannst du selbst korrigieren (ins Feld tippen).
+5. Knöpfe darunter:
+   - **📋 Kopieren** – danach z. B. in WhatsApp oder im Claude-Chat lange tippen → **Einfügen**.
+   - **📤 Teilen** – direkt an eine andere App schicken.
+   - **💾 Speichern** – als Textdatei.
+   - **🗑 Leeren** – Feld leeren.
 
-In der Liste kannst du jede Aufnahme:
-- ▶ **anhören**
-- ⬇ **aufs Handy laden** (landet im Ordner „Downloads“ am Handy)
-- 🗑 **löschen**
+Der Text bleibt erhalten, auch wenn du die App schließt.
+Die Spracherkennung braucht **Internet** (sie läuft über die Spracherkennung des Handys, meist von Google).
 
-Ist der Pi beim Stoppen nicht erreichbar, geht die Aufnahme nicht verloren:
-Es erscheint ein Link **„Aufnahme aufs Handy speichern“**.
+## Wo sind meine Dateien?
 
-## Wo finde ich die Aufnahmen am Pi?
+In der App **Eigene Dateien** (Samsung) → **Interner Speicher**:
+- Tonaufnahmen: **Music → Smartphone-Aufnahme**
+  (Dateinamen wie `Sprache_2026-11-18_14-30-05.m4a` oder `Medien_…`)
+- Diktate: **Documents → Smartphone-Aufnahme** (`Diktat_….txt`)
 
-Dateimanager öffnen → Ordner **Aufnahmen**. Dateinamen enthalten Datum und Uhrzeit,
-z. B. `Aufnahme_2026-11-18_14-30-05.mp3`.
+Die Tonaufnahmen findest du auch in Musik-Apps. In der App selbst kannst du sie anhören, teilen und löschen.
 
 ## Wenn etwas nicht klappt
 
 | Problem | Lösung |
 |---|---|
-| Seite lädt nicht | Gleiches WLAN? Pi an? Adresse mit `https://` und `:8444`? Am Pi die Einrichtungs-Zeilen nochmal einfügen. |
-| „Mikrofon gesperrt“ | In Chrome links neben der Adresse auf das Symbol tippen → Berechtigungen → Mikrofon → **Zulassen**, Seite neu laden. |
-| „Kein Mikrofon gefunden“ | Android-Einstellungen → Apps → Chrome → Berechtigungen → Mikrofon → **Erlauben**. Andere Apps schließen, die gerade das Mikrofon nutzen. |
-| Aufnahme bleibt `.webm` statt `.mp3` | Am Pi fehlt `ffmpeg`. Im Terminal: `sudo apt install ffmpeg` |
-| Aufnahme bricht ab | Bildschirm ist ausgegangen oder Chrome wurde verlassen. Während der Aufnahme auf der Seite bleiben. |
+| „Mikrofon nicht erlaubt“ | Einstellungen → Apps → Smartphone-Aufnahme → Berechtigungen → Mikrofon → **Bei Nutzung der App zulassen** |
+| Medien-Aufnahme ist still | Die abspielende App sperrt die Aufnahme (siehe oben), oder der Ton war stumm geschaltet. |
+| Diktieren: „Keine Spracherkennung gefunden“ | Die App **Google** aus dem Play Store installieren/aktualisieren. |
+| Diktieren: „Keine Internet-Verbindung“ | WLAN oder mobile Daten einschalten. |
+| Installation: „App nicht installiert“ | Alte Version zuerst deinstallieren, dann neu installieren. |
+| Aufnahme bricht im Hintergrund ab | Einstellungen → Apps → Smartphone-Aufnahme → Akku → **Nicht eingeschränkt**. |
 
 ## Technik (kurz erklärt)
 
-- `aufnahme.py` läuft am Pi. Es ist ein kleiner Webserver (ein Programm, das Webseiten ausliefert) auf
-  Port **8444**. Der „Port“ ist wie eine Hausnummer für Programme auf dem Pi.
-- **https** (verschlüsselte Verbindung) ist nötig, weil Chrome sonst das Mikrofon nicht erlaubt.
-  Das Zertifikat (`zertifikat.pem`, `schluessel.pem`) erstellt der Pi beim ersten Start selbst.
-- Das Handy nimmt im Browser auf (Format `.webm`) und schickt die Datei an den Pi.
-- Der Pi wandelt sie mit dem Programm **ffmpeg** in **MP3** um, weil MP3 überall abspielt.
-- `einrichten.sh` lädt die neueste Version, installiert ffmpeg, richtet den Autostart und den Startmenü-Eintrag ein.
+- Geschrieben in **Java** (eine Programmiersprache für Android), ohne Zusatz-Bibliotheken.
+- `app/src/main/java/…/MainActivity.java` – der Bildschirm (Knöpfe, Liste, Diktieren).
+- `AufnahmeService.java` – nimmt im Hintergrund auf (Android nennt das „Vordergrund-Dienst“, darum die Benachrichtigung).
+  Medienaudio nutzt die Android-Funktion „Audio Playback Capture“ (ab Android 10).
+- `AacSchreiber.java` – wandelt den Ton in das platzsparende Format AAC (`.m4a`) um, ca. 1 MB pro Minute.
+- `Speicher.java` – legt die Dateien im normalen Handy-Speicher ab.
+- **GitHub baut die App automatisch** (`.github/workflows/app-bauen.yml`), sobald sich etwas ändert:
+  Es testet sie auf einem simulierten Android-Handy und stellt die fertige `.apk`-Datei zum Herunterladen bereit.
+  Eine `.apk` ist eine Installationsdatei für Android-Apps.
+- `app/schluessel.keystore` – digitale Unterschrift der App. Gleiche Unterschrift = neue Versionen lassen sich
+  über die alte installieren.
 
-Beenden von Hand (falls im Terminal gestartet): **Strg + C**.
+## Ältere Version für den Raspberry Pi
 
-## Verwandtes Projekt
-
-[Smartphone-Mikrofon](https://github.com/marchens1977/Smartphone-Mikrofon): das Handy als
-Sprach-Fernbedienung für den Pi (Port 8443). Beide Programme können gleichzeitig laufen.
+Im Ordner [`pi-version`](pi-version/) liegt die erste Version, bei der die Aufnahmen am Raspberry Pi
+gespeichert wurden (wird im Moment nicht benutzt).

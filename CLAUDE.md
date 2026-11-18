@@ -2,51 +2,69 @@
 
 ## 1. Worum geht es?
 
-Der Nutzer nimmt mit seinem Smartphone (Samsung, Chrome) Ton auf; die Aufnahmen werden auf seinem
-Raspberry Pi 400 gespeichert.
+Eine **Android-App** für das Samsung-Smartphone des Nutzers. Alles wird **auf dem Handy** gespeichert,
+kein Pi nötig (Wunsch des Nutzers, 2026-11-18). Drei Bereiche:
 
-- `aufnahme.py` – läuft auf dem Pi (nur Python-Standardbibliothek).
-  - Webserver auf Port **8444** mit **https** (selbst erstelltes Zertifikat `zertifikat.pem`/`schluessel.pem`,
-    wird beim ersten Start mit `openssl` erzeugt, nicht im Repository, steht in `.gitignore`).
-  - Liefert die Handy-Seite aus (im Python-Code eingebettet, Variable `SEITE`).
-  - Handy nimmt per `MediaRecorder` auf (Chrome: `.webm`/Opus), lädt per `POST /aufnahme?endung=…` hoch.
-  - Pi speichert in `~/Aufnahmen/Aufnahme_JJJJ-MM-TT_HH-MM-SS.webm` (erst als `.teil`, dann umbenannt)
-    und wandelt im Hintergrund mit `ffmpeg` in `.mp3` um (Original wird danach gelöscht).
-  - `GET /aufnahmen` = Liste (JSON), `GET /aufnahmen/<name>` = Datei (mit Range, zum Spulen),
-    `POST /loeschen` = löschen. `aufnahme_pfad()` lässt nur Dateien direkt im Ordner zu (Sicherheit).
-  - Am Handy: Uhr, Pegel-Balken, Bildschirm-wach-halten (Wake Lock), Liste mit Anhören/Download/Löschen.
-    Pi nicht erreichbar → Download-Link für die Aufnahme direkt am Handy.
-- `einrichten.sh` – lädt neueste Version von `main`, installiert `ffmpeg`, Autostart + Startmenü-Eintrag.
-- `vorschau.png` – Bildschirmfoto der Handy-Seite.
+1. **Stimme** – Mikrofon aufnehmen → `.m4a`
+2. **Medien** – Ton aufnehmen, den das Handy abspielt (MediaProjection + `AudioPlaybackCaptureConfiguration`,
+   ab Android 10) → `.m4a`
+3. **Diktieren** – `SpeechRecognizer` (de-DE), hört fortlaufend zu (startet nach jedem Ergebnis neu),
+   gesprochene Satzzeichen („Punkt“, „neue Zeile“ …) werden umgewandelt. Text: Kopieren/Teilen/als `.txt` speichern.
+   Text bleibt in SharedPreferences erhalten.
+
+### Dateien
+- `app/src/main/java/de/smartphone/aufnahme/`
+  - `MainActivity.java` – Oberfläche komplett im Code gebaut (keine Layout-XML), dunkles Design wie die Pi-Seiten.
+    Fragt den Zustand des Dienstes alle 200 ms ab (statische Felder in `AufnahmeService`).
+  - `AufnahmeService.java` – Vordergrund-Dienst (Typ `microphone` bzw. `mediaProjection`), `AudioRecord` → PCM,
+    Pegel, Pause, Benachrichtigung mit Pause/Stopp. Mikro mono, Medien stereo, 44,1 kHz.
+  - `AacSchreiber.java` – PCM → AAC per `MediaCodec` + `MediaMuxer` (.m4a), erst in den Cache.
+  - `Speicher.java` – MediaStore: Ton nach `Music/Smartphone-Aufnahme/`, Text nach `Documents/Smartphone-Aufnahme/`.
+    Keine Speicher-Berechtigung nötig (App sieht/löscht eigene Dateien).
+- `app/src/androidTest/…/AufnahmeTest.java` – Tests auf dem Emulator: AAC-Datei (Dauer, Format),
+  Speichern/Liste/Löschen, Text speichern, komplette Mikrofon-Aufnahme über den Dienst.
+- `.github/workflows/app-bauen.yml` – bei Push auf `main` (außer .md/pi-version): bauen, Emulator-Tests (API 34),
+  Bildschirmfoto als Artefakt „ergebnisse“, APK als Release `neueste-version`.
+  Download-Link: https://github.com/marchens1977/Smartphone-Audio-Aufnahme/releases/download/neueste-version/Smartphone-Aufnahme.apk
+- `app/schluessel.keystore` – fester Signier-Schlüssel (Passwort `aufnahme`), damit Updates drüber installierbar sind.
+  Bewusst im Repository (Hobby-App, nicht im Play Store).
+- `pi-version/` – erste Version (Aufnahmen am Raspberry Pi speichern, Port 8444). Zurzeit nicht genutzt.
+
+### Bauen
+- Hier im Claude-Container gibt es kein Android-SDK (dl.google.com gesperrt). Zum schnellen Prüfen:
+  `javac --release 17 -cp android-all.jar` mit `org.robolectric:android-all:14-robolectric-10818077`
+  von Maven Central. Richtig gebaut und getestet wird in GitHub Actions.
+- AGP 8.5.2, Gradle 8.9 (über `gradle/actions/setup-gradle`, kein Wrapper im Repo), compileSdk/targetSdk 34, minSdk 29, Java 17.
 
 ## 2. Entscheidungen
 
-- Eigenes Repository und eigener Port (8444), damit es unabhängig vom Projekt
-  **Smartphone-Mikrofon** (Port 8443) läuft.
-- Webseite statt echter Android-App: keine Installation, kein App-Store, funktioniert mit Chrome.
-- https ist nötig, weil Chrome das Mikrofon sonst nicht freigibt.
-- MP3-Umwandlung am Pi, weil `.webm` aus Chrome keine Gesamtlänge anzeigt und nicht überall abspielt.
-- Aufnahme komplett am Handy, Hochladen erst beim Stopp (einfacher als Streaming während der Aufnahme).
+- **Echte App statt Webseite**: Medienaudio kann eine Webseite in Chrome auf Android nicht aufnehmen.
+- **Java ohne Bibliotheken**, Oberfläche im Code: wenig, was beim Bauen schiefgehen kann.
+- **Verteilung über GitHub-Release** statt Play Store: Nutzer hat nur Handy + Pi, kein PC mit Android Studio.
+- **AAC/m4a**: klein (~1 MB/Min.), spielt überall.
+- targetSdk 34 (nicht 35), damit Android 15 keine Vollbild-Darstellung erzwingt.
+- Grenzen von Android (dem Nutzer erklärt): Apps wie Netflix/Spotify sperren die Medienaufnahme;
+  Telefonate nicht aufnehmbar; Medienaufnahme muss jedes Mal bestätigt werden.
 
 ## 3. Verlauf
 
 | Datum | Was |
 |---|---|
-| 2026-11-18 | Aufnahme-Modus zuerst im Repository Smartphone-Mikrofon gebaut (Branch `ccr-23711e9a-dpxr33`) |
-| 2026-11-18 | Als eigenständige App hierher übernommen: MP3-Umwandlung, Pegel-Balken, Einrichtungs-Skript, Doku. Mit simuliertem Handy-Browser getestet (Aufnehmen, Speichern, MP3, Abspielen, Löschen) |
+| 2026-11-18 | Erste Version als Pi-Webserver (Handy nimmt auf, Pi speichert, MP3) – jetzt in `pi-version/` |
+| 2026-11-18 | Nutzer-Ziel präzisiert: Stimme + Medienaudio + Diktieren, Speichern auf dem Handy → Android-App gebaut |
 
 ## 4. Offene Ideen
 
-- Aufnahmen umbenennen können
-- Lange Aufnahmen schon während der Aufnahme in Teilen hochladen (Schutz, falls das Handy abbricht)
-- Aufnahme vom Pi aus starten / mehrere Handys gleichzeitig
+- Medien + Mikrofon gleichzeitig (gemischt) aufnehmen
+- Aufnahmen umbenennen
+- Diktat aus einer vorhandenen Aufnahme (Datei → Text)
+- Schnellstart-Kachel in den Schnelleinstellungen
 
 ## 5. Zusammenarbeit
 
-- Einfügen ins Pi-Terminal fügt manchmal Steuerzeichen (`\E[200~`) ein. Deshalb Befehle immer so geben:
-  erste Zeile `echo start`, dann die Befehle, letzte Zeile `echo ende`.
 - Nutzer ist Programmier-Laie: einfaches Deutsch, kleine nummerierte Schritte,
   klar sagen, was Claude übernimmt und was der Nutzer tun muss.
-- Claude übernimmt alles, was möglich ist. Vor dem Hochladen testen (Playwright mit
-  `--use-fake-device-for-media-stream --use-fake-ui-for-media-stream`).
+- Claude übernimmt alles, was möglich ist. Vor dem Weitergeben testen (Emulator-Tests in GitHub Actions
+  müssen grün sein, Bildschirmfoto ansehen).
 - Hardware: Samsung-Smartphone (Chrome) und Raspberry Pi 400.
+- Befehle fürs Pi-Terminal immer mit `echo start` beginnen und `echo ende` beenden (Steuerzeichen beim Einfügen).
