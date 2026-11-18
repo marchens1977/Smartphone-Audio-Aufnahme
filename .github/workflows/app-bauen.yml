@@ -1,0 +1,64 @@
+# Baut die Android-App (APK), testet sie auf einem simulierten Handy
+# und stellt sie zum Herunterladen bereit:
+# https://github.com/marchens1977/Smartphone-Audio-Aufnahme/releases/latest/download/Smartphone-Aufnahme.apk
+name: App bauen
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['**.md', 'pi-version/**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  bauen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: KVM fuer das simulierte Handy freischalten
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: App bauen
+        run: gradle --no-daemon assembleDebug assembleDebugAndroidTest
+      - name: Auf simuliertem Handy testen und Bildschirmfoto machen
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-boot-anim
+          script: |
+            gradle --no-daemon connectedDebugAndroidTest
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb shell pm grant de.smartphone.aufnahme android.permission.POST_NOTIFICATIONS || true
+            adb shell am start -n de.smartphone.aufnahme/.MainActivity
+            sleep 5
+            adb exec-out screencap -p > bildschirm.png
+      - name: Bildschirmfoto und Testbericht aufheben
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ergebnisse
+          path: |
+            bildschirm.png
+            app/build/reports/androidTests/
+      - name: Zum Herunterladen bereitstellen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk Smartphone-Aufnahme.apk
+          gh release delete neueste-version --yes --cleanup-tag || true
+          gh release create neueste-version Smartphone-Aufnahme.apk --latest \
+            --title "Smartphone-Aufnahme (neueste Version)" \
+            --notes "Zum Installieren am Handy: Smartphone-Aufnahme.apk antippen. Anleitung siehe README."

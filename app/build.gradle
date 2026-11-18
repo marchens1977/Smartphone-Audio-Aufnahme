@@ -1,0 +1,46 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'de.smartphone.aufnahme'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'de.smartphone.aufnahme'
+        minSdk 29          // Android 10 - ab da kann man Medienaudio aufnehmen
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+    }
+
+    // Immer derselbe Schluessel: so lassen sich neue Versionen einfach drueberinstallieren
+    signingConfigs {
+        eigener {
+            storeFile file('schluessel.keystore')
+            storePassword 'aufnahme'
+            keyAlias 'aufnahme'
+            keyPassword 'aufnahme'
+        }
+    }
+    buildTypes {
+        debug { signingConfig signingConfigs.eigener }
+        release {
+            signingConfig signingConfigs.eigener
+            minifyEnabled false
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'androidx.test:rules:1.6.1'
+    androidTestImplementation 'androidx.test:core:1.6.1'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'junit:junit:4.13.2'
+}

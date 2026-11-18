@@ -6,7 +6,7 @@
 #  - legt einen Eintrag im Startmenue an (zeigt die Adresse fuers Handy)
 ORDNER="$HOME/smartphone-audio-aufnahme"
 mkdir -p "$ORDNER" "$HOME/Aufnahmen" "$HOME/.config/autostart" "$HOME/.local/share/applications"
-wget -q -O "$ORDNER/aufnahme.py" https://raw.githubusercontent.com/marchens1977/Smartphone-Audio-Aufnahme/main/aufnahme.py
+wget -q -O "$ORDNER/aufnahme.py" https://raw.githubusercontent.com/marchens1977/Smartphone-Audio-Aufnahme/main/pi-version/aufnahme.py
 
 # ffmpeg wandelt die Aufnahmen in MP3 um (spielt ueberall ab)
 if ! command -v ffmpeg >/dev/null; then
