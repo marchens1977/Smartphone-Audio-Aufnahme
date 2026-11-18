@@ -1,18 +1,19 @@
 # 🎙 Smartphone-Aufnahme – Android-App
 
-Eine kleine App für dein Android-Handy (z. B. Samsung) mit drei Funktionen:
+Eine kleine App für dein Android-Handy (z. B. Samsung) mit vier Funktionen:
 
 | Bereich | Was es macht | Gespeichert als |
 |---|---|---|
 | 🎙 **Stimme** | Nimmt auf, was du ins Mikrofon sprichst | `.m4a`-Tondatei |
 | 🎵 **Medien** | Nimmt den Ton auf, den das Handy gerade abspielt (Video, Radio-App, Sprachnachricht …) | `.m4a`-Tondatei |
 | ⌨ **Diktieren** | Wandelt deine Sprache in Text um | Text zum Kopieren/Teilen oder `.txt`-Datei |
+| 🔊 **Vorlesen** | Liest einen Text (z. B. eine Antwort von Claude) mit der Handy-Stimme vor | `.m4a`-Tondatei |
 
 Alles bleibt **auf dem Handy**. Es wird kein Computer und kein Raspberry Pi gebraucht.
 Jede Aufnahme lässt sich mit **📤 Senden** per WhatsApp, E-Mail usw. verschicken.
 Design in den Farben der New York Mets (Blau und Orange).
 
-<img src="vorschau.png" width="250" alt="Aufnehmen"> <img src="vorschau-diktat.png" width="250" alt="Diktieren">
+<img src="vorschau.png" width="250" alt="Aufnehmen"> <img src="vorschau-diktat.png" width="250" alt="Diktieren"> <img src="vorschau-vorlesen.png" width="250" alt="Vorlesen">
 
 ## Installieren (einmalig, am Handy)
 
@@ -83,6 +84,19 @@ Dann lieber WhatsApp oder Google Drive nehmen.
 Der Text bleibt erhalten, auch wenn du die App schließt.
 Die Spracherkennung braucht **Internet** (sie läuft über die Spracherkennung des Handys, meist von Google).
 
+### 🔊 Vorlesen (z. B. eine Erklärung von Claude als Tondatei)
+1. In der **Claude-App** lange auf Claudes Antwort tippen → **Kopieren**.
+   (Auch nach einem Gespräch im Sprachmodus steht die Antwort als Text im Chat.)
+2. In dieser App oben **Vorlesen** wählen und **📋 Einfügen** tippen.
+3. Tempo wählen: **🐢 Langsam**, **Normal** oder **🐇 Schnell**.
+4. **▶ Anhören** liest den Text sofort vor (zum Probehören, ■ Stopp beendet).
+5. **💾 Als Aufnahme speichern** macht daraus eine Tondatei. Sie erscheint unten in **Meine Aufnahmen**
+   (Name `Vorlesen_…m4a`) und lässt sich mit **📤 Senden** per WhatsApp oder E-Mail verschicken.
+
+Gesprochen wird mit der Vorlese-Stimme des Handys (nicht mit Claudes Stimme).
+Falls die App meldet, dass die deutsche Stimme fehlt: Einstellungen → **Allgemeine Verwaltung** →
+**Text-zu-Sprache** → beim bevorzugten Modul auf ⚙ → **Sprachdaten installieren** → **Deutsch**.
+
 ## Wo sind meine Dateien?
 
 In der App **Eigene Dateien** (Samsung) → **Interner Speicher**:
@@ -112,6 +126,7 @@ Die Tonaufnahmen findest du auch in Musik-Apps. In der App selbst kannst du sie 
   Medienaudio nutzt die Android-Funktion „Audio Playback Capture“ (ab Android 10).
 - `AacSchreiber.java` – wandelt den Ton in das platzsparende Format AAC (`.m4a`) um, ca. 1 MB pro Minute.
 - `Speicher.java` – legt die Dateien im normalen Handy-Speicher ab.
+- `Vorleser.java` – macht mit der Vorlese-Stimme des Handys (Text-zu-Sprache) aus Text eine Tondatei.
 - **GitHub baut die App automatisch** (`.github/workflows/app-bauen.yml`), sobald sich etwas ändert:
   Es testet sie auf einem simulierten Android-Handy und stellt die fertige `.apk`-Datei zum Herunterladen bereit.
   Eine `.apk` ist eine Installationsdatei für Android-Apps.

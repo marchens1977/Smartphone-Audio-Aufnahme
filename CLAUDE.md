@@ -3,7 +3,7 @@
 ## 1. Worum geht es?
 
 Eine **Android-App** für das Samsung-Smartphone des Nutzers. Alles wird **auf dem Handy** gespeichert,
-kein Pi nötig (Wunsch des Nutzers, 2026-11-18). Drei Bereiche:
+kein Pi nötig (Wunsch des Nutzers, 2026-11-18). Vier Bereiche:
 
 1. **Stimme** – Mikrofon aufnehmen → `.m4a`
 2. **Medien** – Ton aufnehmen, den das Handy abspielt (MediaProjection + `AudioPlaybackCaptureConfiguration`,
@@ -11,6 +11,9 @@ kein Pi nötig (Wunsch des Nutzers, 2026-11-18). Drei Bereiche:
 3. **Diktieren** – `SpeechRecognizer` (de-DE), hört fortlaufend zu (startet nach jedem Ergebnis neu),
    gesprochene Satzzeichen („Punkt“, „neue Zeile“ …) werden umgewandelt. Text: Kopieren/Teilen/als `.txt` speichern.
    Text bleibt in SharedPreferences erhalten.
+4. **Vorlesen** – Text einfügen (Zwischenablage), Android-`TextToSpeech` (de-DE, Tempo 0,8/1,0/1,25):
+   „Anhören“ (`speak`) oder „Als Aufnahme speichern“ (`synthesizeToFile` → WAV-Stücke ≤ 3000 Zeichen →
+   `Vorleser.wavZuM4a` → `.m4a` in Music). Anlass: Claude-Sprachmodus lässt sich nicht mitschneiden.
 
 ### Dateien
 - `app/src/main/java/de/smartphone/aufnahme/`
@@ -19,6 +22,7 @@ kein Pi nötig (Wunsch des Nutzers, 2026-11-18). Drei Bereiche:
   - `AufnahmeService.java` – Vordergrund-Dienst (Typ `microphone` bzw. `mediaProjection`), `AudioRecord` → PCM,
     Pegel, Pause, Benachrichtigung mit Pause/Stopp. Mikro mono, Medien stereo, 44,1 kHz.
   - `AacSchreiber.java` – PCM → AAC per `MediaCodec` + `MediaMuxer` (.m4a), erst in den Cache.
+  - `Vorleser.java` – Text teilen, TTS in WAV-Dateien, WAV-Kopf lesen, zu m4a zusammensetzen.
   - `Speicher.java` – MediaStore: Ton nach `Music/Smartphone-Aufnahme/`, Text nach `Documents/Smartphone-Aufnahme/`.
     Keine Speicher-Berechtigung nötig (App sieht/löscht eigene Dateien).
 - `app/src/androidTest/…/AufnahmeTest.java` – Tests auf dem Emulator: AAC-Datei (Dauer, Format),
@@ -55,6 +59,7 @@ kein Pi nötig (Wunsch des Nutzers, 2026-11-18). Drei Bereiche:
 | 2026-11-18 | Erste Version als Pi-Webserver (Handy nimmt auf, Pi speichert, MP3) – jetzt in `pi-version/` |
 | 2026-11-18 | Nutzer-Ziel präzisiert: Stimme + Medienaudio + Diktieren, Speichern auf dem Handy → Android-App gebaut |
 | 2026-11-18 | Mets-Farben, oranger „📤 Senden“-Knopf (WhatsApp/E-Mail mit Betreff) |
+| 2026-11-18 | Bereich „Vorlesen“ (Text → Handy-Stimme → Tondatei), Liste der Aufnahmen auch dort sichtbar |
 | 2026-11-18 | Nutzer-Test: Claude-Sprachmodus per Medien aufgenommen → 75 s leer (Sprachmodus = Gesprächs-Audio, von Android gesperrt). Stille-Erkennung eingebaut: Warnung nach 4 s, leere Medien-Aufnahme wird nicht gespeichert |
 
 ## 4. Offene Ideen
