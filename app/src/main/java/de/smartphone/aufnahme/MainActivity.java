@@ -46,9 +46,12 @@ import java.util.Locale;
  */
 public class MainActivity extends Activity {
     private static final int ANFRAGE_RECHTE = 1, ANFRAGE_MEDIEN = 2;
-    private static final int FARBE_HINTERGRUND = Color.rgb(18, 32, 43), FARBE_KARTE = Color.rgb(27, 46, 60),
-            FARBE_ROT = Color.rgb(198, 40, 40), FARBE_GELB = Color.rgb(249, 168, 37),
-            FARBE_GRAU = Color.rgb(85, 85, 85), FARBE_BLAU = Color.rgb(158, 203, 255);
+    // Farben der New York Mets: Blau und Orange
+    private static final int METS_BLAU = Color.rgb(0, 45, 114), METS_ORANGE = Color.rgb(255, 89, 16);
+    private static final int FARBE_HINTERGRUND = METS_BLAU, FARBE_KARTE = Color.rgb(16, 66, 145),
+            FARBE_ROT = METS_ORANGE, FARBE_GELB = METS_ORANGE,
+            FARBE_GRAU = Color.rgb(90, 110, 150), FARBE_BLAU = Color.WHITE,
+            FARBE_KNOPF = Color.rgb(28, 85, 170), FARBE_HELL = Color.rgb(190, 205, 230);
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private SharedPreferences einstellungen;
@@ -92,7 +95,7 @@ public class MainActivity extends Activity {
         modi.addView(knopfDiktat, gewicht());
         seite.addView(modi);
 
-        info = text("", 15, Color.rgb(187, 187, 187));
+        info = text("", 15, FARBE_HELL);
         seite.addView(info);
 
         // --- Bereich Aufnahme (Stimme und Medien)
@@ -105,6 +108,8 @@ public class MainActivity extends Activity {
         bereichAufnahme.addView(uhr);
         pegel = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
         pegel.setMax(100);
+        pegel.setProgressTintList(android.content.res.ColorStateList.valueOf(METS_ORANGE));
+        pegel.setProgressBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.WHITE));
         bereichAufnahme.addView(pegel, mittig(dp(200), dp(14), dp(4)));
         pauseKnopf = flacherKnopf("⏸ Pause");
         pauseKnopf.setOnClickListener(v -> startService(
@@ -149,7 +154,7 @@ public class MainActivity extends Activity {
         LinearLayout reihe1 = new LinearLayout(this), reihe2 = new LinearLayout(this);
         reihe1.setPadding(0, dp(8), 0, 0);
         reihe1.addView(aktionsKnopf("📋 Kopieren", v -> kopieren()), gewicht());
-        reihe1.addView(aktionsKnopf("📤 Teilen", v -> teileText()), gewicht());
+        reihe1.addView(aktionsKnopf("📤 Senden", v -> teileText()), gewicht());
         reihe2.addView(aktionsKnopf("💾 Speichern", v -> speichereText()), gewicht());
         reihe2.addView(aktionsKnopf("🗑 Leeren", v -> leereText()), gewicht());
         bereichDiktat.addView(reihe1);
@@ -166,7 +171,8 @@ public class MainActivity extends Activity {
         rollen.addView(seite);
         setContentView(rollen);
 
-        setzeModus(einstellungen.getString("modus", AufnahmeService.ART_MIKRO));
+        String start = getIntent().getStringExtra("modus");   // nur fuer die automatischen Bildschirmfotos
+        setzeModus(start != null ? start : einstellungen.getString("modus", AufnahmeService.ART_MIKRO));
         if (Build.VERSION.SDK_INT >= 33) frageRechte(Manifest.permission.POST_NOTIFICATIONS);
     }
 
@@ -197,9 +203,9 @@ public class MainActivity extends Activity {
         knopfStimme.setBackground(rund(m.equals(AufnahmeService.ART_MIKRO) ? FARBE_GELB : FARBE_KARTE, dp(8)));
         knopfMedien.setBackground(rund(m.equals(AufnahmeService.ART_MEDIEN) ? FARBE_GELB : FARBE_KARTE, dp(8)));
         knopfDiktat.setBackground(rund(m.equals("Diktat") ? FARBE_GELB : FARBE_KARTE, dp(8)));
-        knopfStimme.setTextColor(m.equals(AufnahmeService.ART_MIKRO) ? Color.BLACK : Color.LTGRAY);
-        knopfMedien.setTextColor(m.equals(AufnahmeService.ART_MEDIEN) ? Color.BLACK : Color.LTGRAY);
-        knopfDiktat.setTextColor(m.equals("Diktat") ? Color.BLACK : Color.LTGRAY);
+        knopfStimme.setTextColor(m.equals(AufnahmeService.ART_MIKRO) ? Color.WHITE : FARBE_HELL);
+        knopfMedien.setTextColor(m.equals(AufnahmeService.ART_MEDIEN) ? Color.WHITE : FARBE_HELL);
+        knopfDiktat.setTextColor(m.equals("Diktat") ? Color.WHITE : FARBE_HELL);
         bereichAufnahme.setVisibility(m.equals("Diktat") ? View.GONE : View.VISIBLE);
         bereichDiktat.setVisibility(m.equals("Diktat") ? View.VISIBLE : View.GONE);
         if (m.equals(AufnahmeService.ART_MIKRO)) {
@@ -310,7 +316,11 @@ public class MainActivity extends Activity {
             Button abspielen = flacherKnopf(e.uri.equals(spielt) ? "⏹ Stopp" : "▶ Anhören");
             abspielen.setOnClickListener(v -> abspielen(e.uri));
             knoepfe.addView(abspielen);
-            knoepfe.addView(flacherKnopf("📤 Teilen", v -> teileTon(e.uri)));
+            Button senden = flacherKnopf("📤 Senden", v -> teileTon(e));
+            senden.setBackground(rund(METS_ORANGE, dp(8)));
+            LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(-2, -2);
+            slp.setMargins(dp(4), dp(4), dp(4), dp(4));
+            knoepfe.addView(senden, slp);
             knoepfe.addView(flacherKnopf("🗑 Löschen", v -> loeschen(e)));
             karte.addView(knoepfe);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
@@ -347,10 +357,14 @@ public class MainActivity extends Activity {
         spielt = null;
     }
 
-    private void teileTon(Uri uri) {
+    /** Oeffnet die Android-Auswahl "Senden mit …" (WhatsApp, E-Mail, Bluetooth, Drive …). */
+    private void teileTon(Speicher.Eintrag e) {
         Intent senden = new Intent(Intent.ACTION_SEND).setType("audio/mp4")
-                .putExtra(Intent.EXTRA_STREAM, uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        startActivity(Intent.createChooser(senden, "Aufnahme teilen"));
+                .putExtra(Intent.EXTRA_STREAM, e.uri)
+                .putExtra(Intent.EXTRA_SUBJECT, "Aufnahme: " + e.name)   // Betreff bei E-Mail
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        senden.setClipData(ClipData.newRawUri(e.name, e.uri));
+        startActivity(Intent.createChooser(senden, "Aufnahme senden mit …"));
     }
 
     private void loeschen(Speicher.Eintrag e) {
@@ -386,7 +400,7 @@ public class MainActivity extends Activity {
         }
         mitErlaubnis(() -> {
             diktatAktiv = true;
-            diktatKnopf.setBackground(oval(FARBE_ROT));
+            diktatKnopf.setBackground(oval(FARBE_GRAU));
             diktatKnopf.setText("⏹");
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             hoereZu();
@@ -419,7 +433,7 @@ public class MainActivity extends Activity {
             erkenner = null;
         }
         if (diktatKnopf != null) {
-            diktatKnopf.setBackground(oval(Color.rgb(46, 125, 50)));
+            diktatKnopf.setBackground(oval(METS_ORANGE));
             diktatKnopf.setText("🎤");
         }
         if (!AufnahmeService.laeuft) getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -497,7 +511,7 @@ public class MainActivity extends Activity {
     private void teileText() {
         Intent senden = new Intent(Intent.ACTION_SEND).setType("text/plain")
                 .putExtra(Intent.EXTRA_TEXT, diktatText.getText().toString());
-        startActivity(Intent.createChooser(senden, "Text teilen"));
+        startActivity(Intent.createChooser(senden, "Text senden mit …"));
     }
 
     private void speichereText() {
@@ -641,7 +655,7 @@ public class MainActivity extends Activity {
         b.setAllCaps(false);
         b.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
         b.setTextColor(Color.WHITE);
-        b.setBackground(rund(Color.rgb(69, 90, 100), dp(8)));
+        b.setBackground(rund(FARBE_KNOPF, dp(8)));
         b.setOnClickListener(aktion);
         return b;
     }

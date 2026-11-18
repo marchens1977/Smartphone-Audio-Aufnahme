@@ -42,6 +42,8 @@ kein Pi nötig (Wunsch des Nutzers, 2026-11-18). Drei Bereiche:
 - **Java ohne Bibliotheken**, Oberfläche im Code: wenig, was beim Bauen schiefgehen kann.
 - **Verteilung über GitHub-Release** statt Play Store: Nutzer hat nur Handy + Pi, kein PC mit Android Studio.
 - **AAC/m4a**: klein (~1 MB/Min.), spielt überall.
+- **Design in Mets-Farben** (Wunsch des Nutzers): Blau `#002D72`, Orange `#FF5910`, Weiß.
+- **Senden** über die Android-Auswahl (`ACTION_SEND`) – deckt WhatsApp, E-Mail und alles andere ab.
 - targetSdk 34 (nicht 35), damit Android 15 keine Vollbild-Darstellung erzwingt.
 - Grenzen von Android (dem Nutzer erklärt): Apps wie Netflix/Spotify sperren die Medienaufnahme;
   Telefonate nicht aufnehmbar; Medienaufnahme muss jedes Mal bestätigt werden.
@@ -52,6 +54,7 @@ kein Pi nötig (Wunsch des Nutzers, 2026-11-18). Drei Bereiche:
 |---|---|
 | 2026-11-18 | Erste Version als Pi-Webserver (Handy nimmt auf, Pi speichert, MP3) – jetzt in `pi-version/` |
 | 2026-11-18 | Nutzer-Ziel präzisiert: Stimme + Medienaudio + Diktieren, Speichern auf dem Handy → Android-App gebaut |
+| 2026-11-18 | Mets-Farben, oranger „📤 Senden“-Knopf (WhatsApp/E-Mail mit Betreff) |
 
 ## 4. Offene Ideen
 

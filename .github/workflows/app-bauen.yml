@@ -42,16 +42,20 @@ jobs:
             gradle --no-daemon connectedDebugAndroidTest
             adb install -r app/build/outputs/apk/debug/app-debug.apk
             adb shell pm grant de.smartphone.aufnahme android.permission.POST_NOTIFICATIONS || true
-            adb shell am start -n de.smartphone.aufnahme/.MainActivity
+            adb shell am start -n de.smartphone.aufnahme/.MainActivity --es modus Sprache
             sleep 5
             adb exec-out screencap -p > bildschirm.png
+            adb shell am force-stop de.smartphone.aufnahme
+            adb shell am start -n de.smartphone.aufnahme/.MainActivity --es modus Diktat
+            sleep 4
+            adb exec-out screencap -p > bildschirm-diktat.png
       - name: Bildschirmfoto und Testbericht aufheben
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ergebnisse
           path: |
-            bildschirm.png
+            bildschirm*.png
             app/build/reports/androidTests/
       - name: Zum Herunterladen bereitstellen
         env:
@@ -59,6 +63,6 @@ jobs:
         run: |
           cp app/build/outputs/apk/debug/app-debug.apk Smartphone-Aufnahme.apk
           gh release delete neueste-version --yes --cleanup-tag || true
-          gh release create neueste-version Smartphone-Aufnahme.apk --latest \
+          gh release create neueste-version Smartphone-Aufnahme.apk bildschirm.png bildschirm-diktat.png --latest \
             --title "Smartphone-Aufnahme (neueste Version)" \
             --notes "Zum Installieren am Handy: Smartphone-Aufnahme.apk antippen. Anleitung siehe README."

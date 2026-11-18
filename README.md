@@ -9,6 +9,8 @@ Eine kleine App für dein Android-Handy (z. B. Samsung) mit drei Funktionen:
 | ⌨ **Diktieren** | Wandelt deine Sprache in Text um | Text zum Kopieren/Teilen oder `.txt`-Datei |
 
 Alles bleibt **auf dem Handy**. Es wird kein Computer und kein Raspberry Pi gebraucht.
+Jede Aufnahme lässt sich mit **📤 Senden** per WhatsApp, E-Mail usw. verschicken.
+Design in den Farben der New York Mets (Blau und Orange).
 
 ![Vorschau](vorschau.png)
 
@@ -36,7 +38,7 @@ Deine Aufnahmen bleiben erhalten.
 1. Oben **Stimme** wählen.
 2. Roten Knopf tippen. Beim ersten Mal: Mikrofon **Zulassen** (und Benachrichtigungen **Zulassen**).
 3. Sprechen. Uhr und Balken zeigen, dass aufgenommen wird. **⏸ Pause** ist möglich.
-4. Grauen Knopf (⏹) tippen → die Aufnahme wird gespeichert und erscheint in der Liste.
+4. Grauen Knopf (⏹) tippen → die Aufnahme wird gespeichert und erscheint oben in der Liste.
 
 Der Bildschirm darf dabei ausgehen. Oben in der Benachrichtigungsleiste siehst du „Aufnahme läuft“
 und kannst dort auch **Pause** oder **Stopp** tippen.
@@ -54,6 +56,17 @@ und kannst dort auch **Pause** oder **Stopp** tippen.
   Dann ist die Aufnahme still. Das kann keine App umgehen.
 - YouTube im Chrome-Browser, Radio-Apps, Podcasts und die meisten Spiele funktionieren normalerweise.
 
+### 📤 Aufnahme senden (WhatsApp, E-Mail …)
+1. In der Liste **Meine Aufnahmen** bei der gewünschten Aufnahme auf den orangen Knopf **📤 Senden** tippen.
+2. Android zeigt die Auswahl „Senden mit …“:
+   - **WhatsApp** → Kontakt oder Gruppe wählen → senden. Die Aufnahme kommt als Audiodatei an.
+   - **E-Mail** (z. B. Gmail, Samsung E-Mail, GMX) → Empfänger eintragen → senden.
+     Der Betreff ist schon ausgefüllt, die Aufnahme hängt als Anhang dran.
+   - Auch Telegram, Signal, Google Drive, Bluetooth usw. sind möglich.
+
+Tipp: Große Aufnahmen (über ca. 20 MB, also etwa 20 Minuten) nehmen viele E-Mail-Anbieter nicht an.
+Dann lieber WhatsApp oder Google Drive nehmen.
+
 ### ⌨ Diktieren
 1. Oben **Diktieren** wählen.
 2. Grünes Mikrofon tippen und sprechen. Der Text erscheint im weißen Feld. Die App hört weiter zu, bis du ⏹ tippst.
@@ -62,7 +75,7 @@ und kannst dort auch **Pause** oder **Stopp** tippen.
 4. Den Text kannst du selbst korrigieren (ins Feld tippen).
 5. Knöpfe darunter:
    - **📋 Kopieren** – danach z. B. in WhatsApp oder im Claude-Chat lange tippen → **Einfügen**.
-   - **📤 Teilen** – direkt an eine andere App schicken.
+   - **📤 Senden** – Text per WhatsApp, E-Mail usw. verschicken.
    - **💾 Speichern** – als Textdatei.
    - **🗑 Leeren** – Feld leeren.
 
