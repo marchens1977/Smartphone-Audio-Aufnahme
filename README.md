@@ -52,7 +52,8 @@ und kannst dort auch **Pause** oder **Stopp** tippen.
 
 **Wichtig – Grenzen von Android:**
 - Aufgenommen wird nur der **Ton** (kein Bild), und **ohne** Mikrofon. Es ist also eine saubere Aufnahme.
-- Manche Apps **sperren** die Aufnahme, z. B. Netflix, Spotify, oft auch WhatsApp-Anrufe und Telefonate.
+- Manche Apps **sperren** die Aufnahme, z. B. Netflix, Spotify, oft auch WhatsApp-Anrufe, Telefonate
+  und der **Sprachmodus der Claude-App** (Android behandelt ihn wie ein Telefonat).
   Dann ist die Aufnahme still. Das kann keine App umgehen.
 - YouTube im Chrome-Browser, Radio-Apps, Podcasts und die meisten Spiele funktionieren normalerweise.
 
@@ -96,7 +97,8 @@ Die Tonaufnahmen findest du auch in Musik-Apps. In der App selbst kannst du sie 
 | Problem | Lösung |
 |---|---|
 | „Mikrofon nicht erlaubt“ | Einstellungen → Apps → Smartphone-Aufnahme → Berechtigungen → Mikrofon → **Bei Nutzung der App zulassen** |
-| Medien-Aufnahme ist still | Die abspielende App sperrt die Aufnahme (siehe oben), oder der Ton war stumm geschaltet. |
+| Medien-Aufnahme ist still | Die abspielende App sperrt die Aufnahme (siehe oben), oder der Ton war stumm geschaltet. Die App warnt dann nach ein paar Sekunden und speichert keine leere Datei. |
+| Claude-Sprachmodus lässt sich nicht aufnehmen | Android behandelt den Sprachmodus wie ein Telefonat – das darf keine App mitschneiden. Stattdessen den Text der Antwort im Claude-Chat kopieren. |
 | Diktieren: „Keine Spracherkennung gefunden“ | Die App **Google** aus dem Play Store installieren/aktualisieren. |
 | Diktieren: „Keine Internet-Verbindung“ | WLAN oder mobile Daten einschalten. |
 | Installation: „App nicht installiert“ | Alte Version zuerst deinstallieren, dann neu installieren. |

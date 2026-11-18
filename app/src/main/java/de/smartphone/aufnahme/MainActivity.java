@@ -275,7 +275,11 @@ public class MainActivity extends Activity {
             pegel.setProgress(laeuft && !AufnahmeService.pausiert ? AufnahmeService.pegel : 0);
             if (laeuft) {
                 uhr.setText(zeit(AufnahmeService.dauerMs));
-                status.setText(AufnahmeService.pausiert ? "⏸ Pausiert" : "🔴 Aufnahme läuft …");
+                boolean still = AufnahmeService.ART_MEDIEN.equals(AufnahmeService.art)
+                        && AufnahmeService.nochKeinTon && AufnahmeService.dauerMs > 4000;
+                status.setText(AufnahmeService.pausiert ? "⏸ Pausiert"
+                        : still ? AufnahmeService.STILLE_HINWEIS + " Läuft überhaupt etwas mit Ton?"
+                        : "🔴 Aufnahme läuft …");
                 getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             } else {
                 getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);

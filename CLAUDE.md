@@ -55,6 +55,7 @@ kein Pi nötig (Wunsch des Nutzers, 2026-11-18). Drei Bereiche:
 | 2026-11-18 | Erste Version als Pi-Webserver (Handy nimmt auf, Pi speichert, MP3) – jetzt in `pi-version/` |
 | 2026-11-18 | Nutzer-Ziel präzisiert: Stimme + Medienaudio + Diktieren, Speichern auf dem Handy → Android-App gebaut |
 | 2026-11-18 | Mets-Farben, oranger „📤 Senden“-Knopf (WhatsApp/E-Mail mit Betreff) |
+| 2026-11-18 | Nutzer-Test: Claude-Sprachmodus per Medien aufgenommen → 75 s leer (Sprachmodus = Gesprächs-Audio, von Android gesperrt). Stille-Erkennung eingebaut: Warnung nach 4 s, leere Medien-Aufnahme wird nicht gespeichert |
 
 ## 4. Offene Ideen
 

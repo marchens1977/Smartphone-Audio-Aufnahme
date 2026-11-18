@@ -36,6 +36,7 @@ public class AufnahmeService extends Service {
     static volatile boolean laeuft = false, pausiert = false;
     static volatile long dauerMs = 0;
     static volatile int pegel = 0;               // 0..100
+    static volatile boolean nochKeinTon = true;   // true, solange nur absolute Stille ankommt
     static volatile String art = "";
     static volatile String meldung = null;        // Nachricht fuer den Bildschirm (wird dort geleert)
 
@@ -64,6 +65,7 @@ public class AufnahmeService extends Service {
         pausiert = false;
         dauerMs = 0;
         stoppen = false;
+        nochKeinTon = true;
         try {
             // Muss VOR dem Zugriff auf Mikrofon / Bildschirmton passieren (Android-Regel)
             zeigeBenachrichtigung();
@@ -139,6 +141,7 @@ public class AufnahmeService extends Service {
                 int n = rec.read(puffer, 0, puffer.length);
                 if (n <= 0) continue;
                 pegel = berechnePegel(puffer, n);
+                if (nochKeinTon && enthaeltTon(puffer, n)) nochKeinTon = false;
                 if (pausiert) continue;
                 schreiber.schreibe(puffer, n);
                 dauerMs = schreiber.dauerMs();
@@ -149,6 +152,10 @@ public class AufnahmeService extends Service {
             if (dauerMs < 300) {
                 zwischen.delete();
                 meldung = "Aufnahme war zu kurz und wurde nicht gespeichert.";
+            } else if (nochKeinTon && ART_MEDIEN.equals(art)) {
+                // Android liefert nur Nullen, wenn die abspielende App die Aufnahme sperrt
+                zwischen.delete();
+                meldung = STILLE_HINWEIS + " Die leere Aufnahme wurde nicht gespeichert.";
             } else {
                 Speicher.tonSpeichern(this, zwischen, name);
                 meldung = "✅ Gespeichert: " + name;
@@ -161,6 +168,14 @@ public class AufnahmeService extends Service {
             rec.release();
             new Handler(Looper.getMainLooper()).post(this::beendeDienst);
         }
+    }
+
+    static final String STILLE_HINWEIS = "⚠️ Es kommt kein Ton an. Die App, die gerade spielt, "
+            + "erlaubt keine Aufnahme (z. B. Claude-Sprachmodus, WhatsApp-Anrufe, Telefonate, Netflix, Spotify).";
+
+    private static boolean enthaeltTon(byte[] b, int n) {
+        for (int i = 0; i < n; i++) if (b[i] != 0) return true;
+        return false;
     }
 
     private static int berechnePegel(byte[] b, int n) {
