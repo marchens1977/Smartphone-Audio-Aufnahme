@@ -8,7 +8,9 @@ kein Pi nötig (Wunsch des Nutzers, 2026-11-18). Vier Bereiche:
 1. **Stimme** – Mikrofon aufnehmen → `.m4a`
 2. **Medien** – Ton aufnehmen, den das Handy abspielt (MediaProjection + `AudioPlaybackCaptureConfiguration`,
    ab Android 10) → `.m4a`
-3. **Diktieren** – `SpeechRecognizer` (de-DE), hört fortlaufend zu (startet nach jedem Ergebnis neu),
+3. **Diktieren** – `SpeechRecognizer` (de-DE), hört fortlaufend zu (startet nach jedem Ergebnis neu).
+   `DiktatSammler.java` übernimmt die Vorschau (Zwischenergebnis), wenn das Endergebnis leer ist oder fehlt
+   (Samsung!) – Regeln aus dem Fisch-Fang-Tracker (`DictationMerge`), ohne Doppelungen.
    gesprochene Satzzeichen („Punkt“, „neue Zeile“ …) werden umgewandelt. Text: Kopieren/Teilen/als `.txt` speichern.
    Text bleibt in SharedPreferences erhalten.
 4. **Vorlesen** – Text einfügen (Zwischenablage), Android-`TextToSpeech` (de-DE, Tempo 0,8/1,0/1,25):
@@ -23,6 +25,8 @@ kein Pi nötig (Wunsch des Nutzers, 2026-11-18). Vier Bereiche:
     Pegel, Pause, Benachrichtigung mit Pause/Stopp. Mikro mono, Medien stereo, 44,1 kHz.
   - `AacSchreiber.java` – PCM → AAC per `MediaCodec` + `MediaMuxer` (.m4a), erst in den Cache.
   - `Vorleser.java` – Text teilen, TTS in WAV-Dateien, WAV-Kopf lesen, zu m4a zusammensetzen.
+  - `DiktatSammler.java` – reine Diktat-Regeln (ohne Android): Vorschau merken, Neubeginn nach Pause erkennen,
+    gesprochene Satzzeichen, Großschreibung (nach Satzende und neuer Zeile). Getestet in `DiktatSammlerTest`.
   - `UpdateSuche.java` – Update-Suche (übernommen aus dem Fisch-Fang-Tracker, dort `UpdateChecker.java`):
     fragt `api.github.com/repos/marchens1977/Smartphone-Audio-Aufnahme/releases/latest`, liest die Nummer aus
     dem Release-Namen `app-v1.0.N`, vergleicht mit dem eigenen `versionCode`. Neuer + APK vorhanden →
@@ -31,7 +35,7 @@ kein Pi nötig (Wunsch des Nutzers, 2026-11-18). Vier Bereiche:
     (zeigt auch „neueste Version“ bzw. „Internet prüfen“). Kein Schlüssel nötig (öffentliches Projekt).
   - `Speicher.java` – MediaStore: Ton nach `Music/Smartphone-Aufnahme/`, Text nach `Documents/Smartphone-Aufnahme/`.
     Keine Speicher-Berechtigung nötig (App sieht/löscht eigene Dateien).
-- `app/src/test/…/UpdateSucheTest.java` – Tests ohne Handy für die Update-Suche (siehe „6. Tests“).
+- `app/src/test/…/UpdateSucheTest.java`, `DiktatSammlerTest.java` – Tests ohne Handy (siehe „6. Tests“).
 - `werkzeuge/update-test.sh` – startet diese Tests ohne Android-Werkzeuge (Claude-Container oder Pi).
 - `app/src/androidTest/…/AufnahmeTest.java` – Tests auf dem Emulator: AAC-Datei (Dauer, Format),
   Speichern/Liste/Löschen, Text speichern, komplette Mikrofon-Aufnahme über den Dienst.
@@ -81,6 +85,7 @@ kein Pi nötig (Wunsch des Nutzers, 2026-11-18). Vier Bereiche:
 | 2026-11-18 | Bereich „Vorlesen“ (Text → Handy-Stimme → Tondatei), Liste der Aufnahmen auch dort sichtbar |
 | 2026-11-18 | Nutzer-Test: Claude-Sprachmodus per Medien aufgenommen → 75 s leer (Sprachmodus = Gesprächs-Audio, von Android gesperrt). Stille-Erkennung eingebaut: Warnung nach 4 s, leere Medien-Aufnahme wird nicht gespeichert |
 | 2026-11-19 | Update-Suche (wie Fisch-Fang-Tracker): ⚙ oben rechts → „Nach Updates suchen“, Suche beim Start, Releases heißen jetzt `app-v1.0.N` |
+| 2026-11-19 | Nutzer: Update klappt (1.0.11). Fehler: Diktat-Vorschau kam nie ins Textfeld (Samsung liefert leeres/kein Endergebnis) → `DiktatSammler` übernimmt die Vorschau. Dabei behoben: „neue Zeile“ am Anfang eines Abschnitts ging verloren |
 
 ## 4. Offene Ideen
 
@@ -110,14 +115,18 @@ kein Pi nötig (Wunsch des Nutzers, 2026-11-18). Vier Bereiche:
   - In GitHub Actions: `gradle testDebugUnitTest` (eigener Schritt vor dem Bauen).
   - Hier im Container oder am Pi: `bash werkzeuge/update-test.sh` (lädt Hilfsdateien von Maven Central,
     übersetzt die ganze App und startet die Tests). Ergebnis 2026-11-19: **OK (11 tests)**.
+- **Diktat (ohne Handy):** `DiktatSammlerTest.java`, 11 Tests: Fall des Nutzers (Vorschau, dann leeres
+  Endergebnis bzw. Sprechpause), Stopp während der Vorschau, Samsung-Neubeginn nach Pause, nichts doppelt,
+  mehrere Runden, Satzzeichen/neue Zeile/Absatz. Läuft mit in `werkzeuge/update-test.sh` und in GitHub Actions.
+  Ergebnis 2026-11-19: **OK (22 tests)** zusammen mit der Update-Suche.
 - **Emulator-Tests:** `AufnahmeTest.java` (siehe oben), laufen nur in GitHub Actions.
 - **Nicht automatisch getestet:** echte Abfrage bei GitHub aus der App, das Fenster „Update verfügbar“,
-  der Download im Browser und das Drüberinstallieren → Test-Liste unten.
+  der Download im Browser und das Drüberinstallieren, die echte Spracherkennung am Samsung → Test-Liste unten.
 
 ## 7. Test-Liste für den Nutzer (am Handy abhaken)
 
 **Update-Suche (nach dem ersten Bau mit Update-Suche):**
-- [ ] Einmalig von Hand installieren: https://github.com/marchens1977/Smartphone-Audio-Aufnahme/releases/latest/download/Smartphone-Aufnahme.apk
+- [x] Einmalig von Hand installieren: https://github.com/marchens1977/Smartphone-Audio-Aufnahme/releases/latest/download/Smartphone-Aufnahme.apk
       (die bisher installierte Version kann noch nicht selbst suchen). Aufnahmen sind danach noch da.
 - [ ] Oben rechts ist ein ⚙. Antippen → Fenster „⚙ Einstellungen“ mit „App-Version 1.0.N“ (N = Zahl).
 - [ ] „Nach Updates suchen“ → Meldung „Du hast schon die neueste Version (1.0.N)“.
@@ -125,3 +134,9 @@ kein Pi nötig (Wunsch des Nutzers, 2026-11-18). Vier Bereiche:
 - [ ] Beim nächsten Update (nach der nächsten Änderung durch Claude): App öffnen → „Update verfügbar“
       → „Jetzt herunterladen“ → auf die Datei tippen → „Aktualisieren“ → Aufnahmen und Diktat-Text sind noch da.
 - [ ] Play Protect blockiert die App nicht (höchstens die übliche Warnung „App scannen“).
+
+**Diktieren (nach dem Update mit der Diktat-Reparatur):**
+- [ ] Diktieren → 🎤 → einen Satz sprechen → kurz warten: Der Satz steht **im weißen Textfeld** (nicht nur darüber).
+- [ ] Mit Pausen weitersprechen → jeder Teil wird angehängt, nichts doppelt.
+- [ ] Mitten im Sprechen auf ■ tippen → das zuletzt Gesagte steht trotzdem im Textfeld.
+- [ ] „Punkt“, „Komma“, „neue Zeile“ sagen → werden zu . , und Zeilenumbruch; danach Großbuchstabe.
