@@ -23,13 +23,23 @@ kein Pi nötig (Wunsch des Nutzers, 2026-11-18). Vier Bereiche:
     Pegel, Pause, Benachrichtigung mit Pause/Stopp. Mikro mono, Medien stereo, 44,1 kHz.
   - `AacSchreiber.java` – PCM → AAC per `MediaCodec` + `MediaMuxer` (.m4a), erst in den Cache.
   - `Vorleser.java` – Text teilen, TTS in WAV-Dateien, WAV-Kopf lesen, zu m4a zusammensetzen.
+  - `UpdateSuche.java` – Update-Suche (übernommen aus dem Fisch-Fang-Tracker, dort `UpdateChecker.java`):
+    fragt `api.github.com/repos/marchens1977/Smartphone-Audio-Aufnahme/releases/latest`, liest die Nummer aus
+    dem Release-Namen `app-v1.0.N`, vergleicht mit dem eigenen `versionCode`. Neuer + APK vorhanden →
+    Fenster „Update verfügbar“ → „Jetzt herunterladen“ öffnet die APK im Browser. Beim Start von selbst
+    (höchstens 1x pro Stunde, still), von Hand über **⚙ oben rechts** → „Nach Updates suchen“
+    (zeigt auch „neueste Version“ bzw. „Internet prüfen“). Kein Schlüssel nötig (öffentliches Projekt).
   - `Speicher.java` – MediaStore: Ton nach `Music/Smartphone-Aufnahme/`, Text nach `Documents/Smartphone-Aufnahme/`.
     Keine Speicher-Berechtigung nötig (App sieht/löscht eigene Dateien).
+- `app/src/test/…/UpdateSucheTest.java` – Tests ohne Handy für die Update-Suche (siehe „6. Tests“).
+- `werkzeuge/update-test.sh` – startet diese Tests ohne Android-Werkzeuge (Claude-Container oder Pi).
 - `app/src/androidTest/…/AufnahmeTest.java` – Tests auf dem Emulator: AAC-Datei (Dauer, Format),
   Speichern/Liste/Löschen, Text speichern, komplette Mikrofon-Aufnahme über den Dienst.
-- `.github/workflows/app-bauen.yml` – bei Push auf `main` (außer .md/pi-version): bauen, Emulator-Tests (API 34),
-  Bildschirmfoto als Artefakt „ergebnisse“, APK als Release `neueste-version`.
-  Download-Link: https://github.com/marchens1977/Smartphone-Audio-Aufnahme/releases/download/neueste-version/Smartphone-Aufnahme.apk
+- `.github/workflows/app-bauen.yml` – bei Push auf `main` (außer .md/pi-version): Tests ohne Handy, bauen,
+  Emulator-Tests (API 34), Bildschirmfoto als Artefakt „ergebnisse“, APK als **neues Release `app-v1.0.N`**
+  (N = `GITHUB_RUN_NUMBER`, als „latest“ markiert; alte Releases bleiben stehen).
+  Download-Link: https://github.com/marchens1977/Smartphone-Audio-Aufnahme/releases/latest/download/Smartphone-Aufnahme.apk
+  (Das alte Release `neueste-version` bleibt stehen, wird aber nicht mehr erneuert – Link dorthin ist veraltet.)
 - `app/schluessel.keystore` – fester Signier-Schlüssel (Passwort `aufnahme`), damit Updates drüber installierbar sind.
   Bewusst im Repository (Hobby-App, nicht im Play Store).
 - `pi-version/` – erste Version (Aufnahmen am Raspberry Pi speichern, Port 8444). Zurzeit nicht genutzt.
@@ -38,6 +48,8 @@ kein Pi nötig (Wunsch des Nutzers, 2026-11-18). Vier Bereiche:
 - Hier im Claude-Container gibt es kein Android-SDK (dl.google.com gesperrt). Zum schnellen Prüfen:
   `javac --release 17 -cp android-all.jar` mit `org.robolectric:android-all:14-robolectric-10818077`
   von Maven Central. Richtig gebaut und getestet wird in GitHub Actions.
+- **Versionsnummer:** `versionCode` = N = `GITHUB_RUN_NUMBER`, `versionName` = `1.0.N` (in `app/build.gradle`).
+  Release-Name `app-v1.0.N` → passt immer zur App-Version. Lokal gebaut: N = 1.
 - AGP 8.5.2, Gradle 8.9 (über `gradle/actions/setup-gradle`, kein Wrapper im Repo), compileSdk/targetSdk 34, minSdk 29, Java 17.
 
 ## 2. Entscheidungen
@@ -49,6 +61,12 @@ kein Pi nötig (Wunsch des Nutzers, 2026-11-18). Vier Bereiche:
 - **Design in Mets-Farben** (Wunsch des Nutzers): Blau `#002D72`, Orange `#FF5910`, Weiß.
 - **Senden** über die Android-Auswahl (`ACTION_SEND`) – deckt WhatsApp, E-Mail und alles andere ab.
 - targetSdk 34 (nicht 35), damit Android 15 keine Vollbild-Darstellung erzwingt.
+- **Update-Suche wie im Fisch-Fang-Tracker** (Wunsch des Nutzers, 2026-11-19): Release-Namen `app-v1.0.N`
+  statt dem immer gleichen `neueste-version` (damit war kein Vergleich möglich). Die App hatte keine
+  Einstellungen → Nutzer wählte ein **⚙ oben rechts** (Fenster mit App-Version + Knopf).
+- **Nie `REQUEST_INSTALL_PACKAGES`** (keine Selbst-Installation): Play Protect hat deshalb den
+  Fisch-Fang-Tracker 1.0.6 als „schädlich“ blockiert. Download läuft über den Browser. Test prüft das.
+- Erlaubnis `INTERNET` neu (nur für die Update-Suche; Android fragt dafür nicht nach).
 - Grenzen von Android (dem Nutzer erklärt): Apps wie Netflix/Spotify sperren die Medienaufnahme;
   Telefonate nicht aufnehmbar; Medienaufnahme muss jedes Mal bestätigt werden.
 
@@ -62,6 +80,7 @@ kein Pi nötig (Wunsch des Nutzers, 2026-11-18). Vier Bereiche:
 | 2026-11-18 | Fehler behoben: am Aufnahme-Ende konnten die letzten Stücke fehlen (Ende-Zeichen an den Umwandler wurde bei vollem Puffer nicht gesendet). Gefunden durch Emulator-Test |
 | 2026-11-18 | Bereich „Vorlesen“ (Text → Handy-Stimme → Tondatei), Liste der Aufnahmen auch dort sichtbar |
 | 2026-11-18 | Nutzer-Test: Claude-Sprachmodus per Medien aufgenommen → 75 s leer (Sprachmodus = Gesprächs-Audio, von Android gesperrt). Stille-Erkennung eingebaut: Warnung nach 4 s, leere Medien-Aufnahme wird nicht gespeichert |
+| 2026-11-19 | Update-Suche (wie Fisch-Fang-Tracker): ⚙ oben rechts → „Nach Updates suchen“, Suche beim Start, Releases heißen jetzt `app-v1.0.N` |
 
 ## 4. Offene Ideen
 
@@ -69,6 +88,9 @@ kein Pi nötig (Wunsch des Nutzers, 2026-11-18). Vier Bereiche:
 - Aufnahmen umbenennen
 - Diktat aus einer vorhandenen Aufnahme (Datei → Text)
 - Schnellstart-Kachel in den Schnelleinstellungen
+- Altes Release `neueste-version` löschen, sobald der Nutzer die neue Version installiert hat
+  (nur nach Rückfrage – der alte Link führt sonst zu einer alten App)
+- Im ⚙-Fenster später weitere Einstellungen (z. B. Standard-Tempo beim Vorlesen)
 
 ## 5. Zusammenarbeit
 
@@ -78,3 +100,28 @@ kein Pi nötig (Wunsch des Nutzers, 2026-11-18). Vier Bereiche:
   müssen grün sein, Bildschirmfoto ansehen).
 - Hardware: Samsung-Smartphone (Chrome) und Raspberry Pi 400.
 - Befehle fürs Pi-Terminal immer mit `echo start` beginnen und `echo ende` beenden (Steuerzeichen beim Einfügen).
+
+## 6. Tests
+
+- **Update-Suche (ohne Handy):** `app/src/test/…/UpdateSucheTest.java`, 11 Tests: Nummer aus Release-Namen,
+  fremde Namen (`neueste-version`) gelten nicht als Update, APK-Link aus einer GitHub-Antwort, nur `https`,
+  „neuer“-Vergleich, App-Version ↔ Release-Name passen zusammen, `build.gradle`/Workflow/Manifest stimmen
+  überein, keine `REQUEST_INSTALL_PACKAGES`.
+  - In GitHub Actions: `gradle testDebugUnitTest` (eigener Schritt vor dem Bauen).
+  - Hier im Container oder am Pi: `bash werkzeuge/update-test.sh` (lädt Hilfsdateien von Maven Central,
+    übersetzt die ganze App und startet die Tests). Ergebnis 2026-11-19: **OK (11 tests)**.
+- **Emulator-Tests:** `AufnahmeTest.java` (siehe oben), laufen nur in GitHub Actions.
+- **Nicht automatisch getestet:** echte Abfrage bei GitHub aus der App, das Fenster „Update verfügbar“,
+  der Download im Browser und das Drüberinstallieren → Test-Liste unten.
+
+## 7. Test-Liste für den Nutzer (am Handy abhaken)
+
+**Update-Suche (nach dem ersten Bau mit Update-Suche):**
+- [ ] Einmalig von Hand installieren: https://github.com/marchens1977/Smartphone-Audio-Aufnahme/releases/latest/download/Smartphone-Aufnahme.apk
+      (die bisher installierte Version kann noch nicht selbst suchen). Aufnahmen sind danach noch da.
+- [ ] Oben rechts ist ein ⚙. Antippen → Fenster „⚙ Einstellungen“ mit „App-Version 1.0.N“ (N = Zahl).
+- [ ] „Nach Updates suchen“ → Meldung „Du hast schon die neueste Version (1.0.N)“.
+- [ ] Flugmodus an → „Nach Updates suchen“ → Meldung „Update-Suche nicht möglich. Bitte Internet prüfen.“
+- [ ] Beim nächsten Update (nach der nächsten Änderung durch Claude): App öffnen → „Update verfügbar“
+      → „Jetzt herunterladen“ → auf die Datei tippen → „Aktualisieren“ → Aufnahmen und Diktat-Text sind noch da.
+- [ ] Play Protect blockiert die App nicht (höchstens die übliche Warnung „App scannen“).

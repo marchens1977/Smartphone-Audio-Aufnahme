@@ -72,6 +72,8 @@ public class MainActivity extends Activity {
     private Uri spielt;
     private boolean warLaufend = false;
 
+    private UpdateSuche updates;
+
     private SpeechRecognizer erkenner;
     private boolean diktatAktiv = false;
 
@@ -91,7 +93,14 @@ public class MainActivity extends Activity {
         seite.setPadding(dp(16), dp(16), dp(16), dp(32));
         TextView titel = text("🎙 Smartphone-Aufnahme", 22, Color.WHITE);
         titel.setTypeface(null, Typeface.BOLD);
-        seite.addView(titel);
+        LinearLayout kopf = new LinearLayout(this);
+        kopf.setGravity(Gravity.CENTER_VERTICAL);
+        kopf.addView(titel, new LinearLayout.LayoutParams(0, -2, 1));
+        Button zahnrad = flacherKnopf("⚙", v -> zeigeEinstellungen());
+        zahnrad.setTextSize(TypedValue.COMPLEX_UNIT_SP, 26);
+        zahnrad.setContentDescription("Einstellungen");
+        kopf.addView(zahnrad, new LinearLayout.LayoutParams(dp(56), dp(56)));
+        seite.addView(kopf);
 
         LinearLayout modi = new LinearLayout(this);
         modi.setPadding(0, dp(12), 0, dp(6));
@@ -222,6 +231,19 @@ public class MainActivity extends Activity {
         String start = getIntent().getStringExtra("modus");   // nur fuer die automatischen Bildschirmfotos
         setzeModus(start != null ? start : einstellungen.getString("modus", AufnahmeService.ART_MIKRO));
         if (Build.VERSION.SDK_INT >= 33) frageRechte(Manifest.permission.POST_NOTIFICATIONS);
+
+        updates = new UpdateSuche(this);
+        if (start == null) updates.automatisch();   // von selbst nach Updates suchen (nicht bei Bildschirmfotos)
+    }
+
+    /** ⚙ Einstellungen: App-Version und Knopf „Nach Updates suchen“. */
+    private void zeigeEinstellungen() {
+        new AlertDialog.Builder(this)
+                .setTitle("⚙ Einstellungen")
+                .setMessage("App-Version " + updates.eigeneVersion())
+                .setPositiveButton("Nach Updates suchen", (d, w) -> updates.suche(true))
+                .setNegativeButton("Schließen", null)
+                .show();
     }
 
     @Override
