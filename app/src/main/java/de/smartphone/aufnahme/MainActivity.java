@@ -76,6 +76,7 @@ public class MainActivity extends Activity {
 
     private SpeechRecognizer erkenner;
     private boolean diktatAktiv = false;
+    private final DiktatSammler sammler = new DiktatSammler();
 
     private TextToSpeech stimme;
     private boolean stimmeBereit = false, liestVor = false, speichert = false;
@@ -518,6 +519,7 @@ public class MainActivity extends Activity {
     }
 
     private void stoppeDiktat() {
+        if (diktatText != null) fuegeTextEin(sammler.abbruch());   // zuletzt Gesagtes nicht verlieren
         diktatAktiv = false;
         if (erkenner != null) {
             erkenner.destroy();
@@ -538,21 +540,24 @@ public class MainActivity extends Activity {
         @Override public void onEndOfSpeech() { }
         @Override public void onEvent(int typ, Bundle b) { }
 
+        // Samsung liefert das Gesagte oft nur als Vorschau; das Endergebnis ist leer oder fehlt.
+        // Der DiktatSammler merkt sich die Vorschau und gibt sie heraus, wenn sonst etwas verloren ginge.
         @Override public void onPartialResults(Bundle b) {
-            ArrayList<String> t = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-            if (t != null && !t.isEmpty() && !t.get(0).isEmpty()) diktatStatus.setText("… " + t.get(0));
+            fuegeTextEin(sammler.zwischen(erstes(b)));
+            if (!sammler.vorschau().isEmpty()) diktatStatus.setText("… " + sammler.vorschau());
         }
 
         @Override public void onResults(Bundle b) {
-            ArrayList<String> t = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-            if (t != null && !t.isEmpty()) fuegeTextEin(t.get(0));
+            fuegeTextEin(sammler.ende(erstes(b)));
             diktatStatus.setText("🔴 Ich höre zu …");
             hoereZu();   // gleich weiter zuhoeren
         }
 
         @Override public void onError(int fehler) {
             if (!diktatAktiv) return;
+            fuegeTextEin(sammler.abbruch());   // Vorschau übernehmen, die Runde ist vorbei
             if (fehler == SpeechRecognizer.ERROR_NO_MATCH || fehler == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
+                diktatStatus.setText("🔴 Ich höre zu …");
                 hoereZu();   // nur eine Sprechpause - weiter zuhoeren
             } else if (fehler == SpeechRecognizer.ERROR_RECOGNIZER_BUSY || fehler == SpeechRecognizer.ERROR_CLIENT) {
                 if (erkenner != null) { erkenner.destroy(); erkenner = null; }
@@ -571,26 +576,16 @@ public class MainActivity extends Activity {
         }
     };
 
-    /** Haengt erkannten Text an und wandelt gesprochene Satzzeichen um. */
+    private static String erstes(Bundle b) {
+        ArrayList<String> t = b == null ? null : b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+        return t != null && !t.isEmpty() && t.get(0) != null ? t.get(0) : "";
+    }
+
+    /** Haengt erkannten Text an (Satzzeichen, Grossschreibung: DiktatSammler.anhang). */
     private void fuegeTextEin(String gesagt) {
-        String neu = " " + gesagt.trim() + " ";
-        neu = neu.replaceAll("(?i)\\s+neuer absatz\\s+", "\n\n")
-                .replaceAll("(?i)\\s+neue zeile\\s+", "\n")
-                .replaceAll("(?i)\\s+punkt(?=\\s)", ".")
-                .replaceAll("(?i)\\s+komma(?=\\s)", ",")
-                .replaceAll("(?i)\\s+fragezeichen(?=\\s)", "?")
-                .replaceAll("(?i)\\s+ausrufezeichen(?=\\s)", "!")
-                .replaceAll("(?i)\\s+doppelpunkt(?=\\s)", ":")
-                .replaceAll("[ \\t]+\n", "\n").replaceAll("\n[ \\t]+", "\n").trim();
+        String neu = DiktatSammler.anhang(diktatText.getText().toString(), gesagt);
         if (neu.isEmpty()) return;
-        String bisher = diktatText.getText().toString();
-        String ohneLeer = bisher.replaceAll("\\s+$", "");
-        boolean satzanfang = ohneLeer.isEmpty() || ohneLeer.endsWith(".") || ohneLeer.endsWith("?")
-                || ohneLeer.endsWith("!") || bisher.endsWith("\n");
-        if (satzanfang) neu = neu.substring(0, 1).toUpperCase(Locale.GERMANY) + neu.substring(1);
-        boolean ohneAbstand = bisher.isEmpty() || bisher.endsWith(" ") || bisher.endsWith("\n")
-                || neu.startsWith("\n") || neu.matches("^[.,?!:].*");
-        diktatText.append((ohneAbstand ? "" : " ") + neu);
+        diktatText.append(neu);
         einstellungen.edit().putString("diktat", diktatText.getText().toString()).apply();
     }
 
