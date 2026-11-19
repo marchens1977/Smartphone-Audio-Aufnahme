@@ -16,6 +16,9 @@ kein Pi nötig (Wunsch des Nutzers, 2026-11-18). Vier Bereiche:
 4. **Vorlesen** – Text einfügen (Zwischenablage), Android-`TextToSpeech` (de-DE, Tempo 0,8/1,0/1,25):
    „Anhören“ (`speak`) oder „Als Aufnahme speichern“ (`synthesizeToFile` → WAV-Stücke ≤ 3000 Zeichen →
    `Vorleser.wavZuM4a` → `.m4a` in Music). Anlass: Claude-Sprachmodus lässt sich nicht mitschneiden.
+   **„🗣 Stimme: …“-Knopf**: listet alle deutschen Stimmen aller Vorlese-Programme des Handys (Samsung, Google …,
+   gefunden über `TTS_SERVICE`), antippen = Probesatz, „Übernehmen“ speichert Programm + Stimme
+   (`tts_programm`, `tts_stimme`, `tts_anzeige` in SharedPreferences). Fehlt das Programm später → Handy-Standard.
 
 ### Dateien
 - `app/src/main/java/de/smartphone/aufnahme/`
@@ -25,6 +28,8 @@ kein Pi nötig (Wunsch des Nutzers, 2026-11-18). Vier Bereiche:
     Pegel, Pause, Benachrichtigung mit Pause/Stopp. Mikro mono, Medien stereo, 44,1 kHz.
   - `AacSchreiber.java` – PCM → AAC per `MediaCodec` + `MediaMuxer` (.m4a), erst in den Cache.
   - `Vorleser.java` – Text teilen, TTS in WAV-Dateien, WAV-Kopf lesen, zu m4a zusammensetzen.
+  - `StimmenListe.java` – reine Regeln für „Stimme wählen“: nur Deutsch + installiert, sortiert
+    (Programm, Deutschland vor AT/CH, ohne Internet zuerst, Qualität), Namen wie „Google – Stimme 2 · Internet nötig“.
   - `DiktatSammler.java` – reine Diktat-Regeln (ohne Android): Vorschau merken, Neubeginn nach Pause erkennen,
     gesprochene Satzzeichen, Großschreibung (nach Satzende und neuer Zeile). Getestet in `DiktatSammlerTest`.
   - `UpdateSuche.java` – Update-Suche (übernommen aus dem Fisch-Fang-Tracker, dort `UpdateChecker.java`):
@@ -35,8 +40,8 @@ kein Pi nötig (Wunsch des Nutzers, 2026-11-18). Vier Bereiche:
     (zeigt auch „neueste Version“ bzw. „Internet prüfen“). Kein Schlüssel nötig (öffentliches Projekt).
   - `Speicher.java` – MediaStore: Ton nach `Music/Smartphone-Aufnahme/`, Text nach `Documents/Smartphone-Aufnahme/`.
     Keine Speicher-Berechtigung nötig (App sieht/löscht eigene Dateien).
-- `app/src/test/…/UpdateSucheTest.java`, `DiktatSammlerTest.java` – Tests ohne Handy (siehe „6. Tests“).
-- `werkzeuge/update-test.sh` – startet diese Tests ohne Android-Werkzeuge (Claude-Container oder Pi).
+- `app/src/test/…/UpdateSucheTest.java`, `DiktatSammlerTest.java`, `StimmenListeTest.java` – Tests ohne Handy (siehe „6. Tests“).
+- `werkzeuge/update-test.sh` – startet ALLE Tests ohne Handy, ohne Android-Werkzeuge (Claude-Container oder Pi).
 - `app/src/androidTest/…/AufnahmeTest.java` – Tests auf dem Emulator: AAC-Datei (Dauer, Format),
   Speichern/Liste/Löschen, Text speichern, komplette Mikrofon-Aufnahme über den Dienst.
 - `.github/workflows/app-bauen.yml` – bei Push auf `main` (außer .md/pi-version): Tests ohne Handy, bauen,
@@ -71,6 +76,8 @@ kein Pi nötig (Wunsch des Nutzers, 2026-11-18). Vier Bereiche:
 - **Nie `REQUEST_INSTALL_PACKAGES`** (keine Selbst-Installation): Play Protect hat deshalb den
   Fisch-Fang-Tracker 1.0.6 als „schädlich“ blockiert. Download läuft über den Browser. Test prüft das.
 - Erlaubnis `INTERNET` neu (nur für die Update-Suche; Android fragt dafür nicht nach).
+- **Keine kostenpflichtigen Stimmen** (Nutzer, 2026-11-19): ElevenLabs verworfen (Kosten pro Text,
+  Nutzer will keine Credits verbrauchen). Stattdessen kostenlose Handy-Stimmen zur Auswahl.
 - Grenzen von Android (dem Nutzer erklärt): Apps wie Netflix/Spotify sperren die Medienaufnahme;
   Telefonate nicht aufnehmbar; Medienaufnahme muss jedes Mal bestätigt werden.
 
@@ -86,6 +93,7 @@ kein Pi nötig (Wunsch des Nutzers, 2026-11-18). Vier Bereiche:
 | 2026-11-18 | Nutzer-Test: Claude-Sprachmodus per Medien aufgenommen → 75 s leer (Sprachmodus = Gesprächs-Audio, von Android gesperrt). Stille-Erkennung eingebaut: Warnung nach 4 s, leere Medien-Aufnahme wird nicht gespeichert |
 | 2026-11-19 | Update-Suche (wie Fisch-Fang-Tracker): ⚙ oben rechts → „Nach Updates suchen“, Suche beim Start, Releases heißen jetzt `app-v1.0.N` |
 | 2026-11-19 | Nutzer: Update klappt (1.0.11). Fehler: Diktat-Vorschau kam nie ins Textfeld (Samsung liefert leeres/kein Endergebnis) → `DiktatSammler` übernimmt die Vorschau. Dabei behoben: „neue Zeile“ am Anfang eines Abschnitts ging verloren |
+| 2026-11-19 | Vorlesen: „🗣 Stimme wählen“ – alle kostenlosen deutschen Handy-Stimmen mit Probehören; Bildschirmfoto `bildschirm-stimmen.png` im Release |
 
 ## 4. Offene Ideen
 
@@ -119,9 +127,12 @@ kein Pi nötig (Wunsch des Nutzers, 2026-11-18). Vier Bereiche:
   Endergebnis bzw. Sprechpause), Stopp während der Vorschau, Samsung-Neubeginn nach Pause, nichts doppelt,
   mehrere Runden, Satzzeichen/neue Zeile/Absatz. Läuft mit in `werkzeuge/update-test.sh` und in GitHub Actions.
   Ergebnis 2026-11-19: **OK (22 tests)** zusammen mit der Update-Suche.
+- **Stimmen-Liste (ohne Handy):** `StimmenListeTest.java`, 7 Tests: nur Deutsch und installiert, Sortierung und
+  Nummern je Programm, Länder (Österreich/Schweiz), Doppelte, fremde Programme, gespeicherte Stimme wiederfinden.
+  Alle Tests zusammen 2026-11-19: **OK (29 tests)**.
 - **Emulator-Tests:** `AufnahmeTest.java` (siehe oben), laufen nur in GitHub Actions.
 - **Nicht automatisch getestet:** echte Abfrage bei GitHub aus der App, das Fenster „Update verfügbar“,
-  der Download im Browser und das Drüberinstallieren, die echte Spracherkennung am Samsung → Test-Liste unten.
+  der Download im Browser und das Drüberinstallieren, die echte Spracherkennung am Samsung, der Klang der Stimmen → Test-Liste unten.
 
 ## 7. Test-Liste für den Nutzer (am Handy abhaken)
 
@@ -140,3 +151,11 @@ kein Pi nötig (Wunsch des Nutzers, 2026-11-18). Vier Bereiche:
 - [ ] Mit Pausen weitersprechen → jeder Teil wird angehängt, nichts doppelt.
 - [ ] Mitten im Sprechen auf ■ tippen → das zuletzt Gesagte steht trotzdem im Textfeld.
 - [ ] „Punkt“, „Komma“, „neue Zeile“ sagen → werden zu . , und Zeilenumbruch; danach Großbuchstabe.
+
+**Vorlesen – Stimme wählen:**
+- [ ] Vorlesen → Knopf „🗣 Stimme: Handy-Standard ▾“ → Liste mit Stimmen (Samsung/Google) erscheint.
+- [ ] Eine Stimme antippen → Probesatz „Hallo! So klinge ich …“ in dieser Stimme.
+- [ ] „Übernehmen“ → Knopf zeigt den Namen; „▶ Anhören“ und „💾 Als Aufnahme speichern“ nutzen diese Stimme.
+- [ ] App schließen und wieder öffnen → gewählte Stimme ist noch eingestellt.
+- [ ] Mehr Stimmen holen (kostenlos): Handy-Einstellungen → Allgemeine Verwaltung → Text-zu-Sprache →
+      ⚙ beim Programm → Sprachdaten installieren → Deutsch. Danach erscheinen sie in der Liste.

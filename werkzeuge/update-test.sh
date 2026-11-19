@@ -18,4 +18,4 @@ AUS="$LAGER/klassen"; rm -rf "$AUS"; mkdir -p "$AUS"
 javac -nowarn --release 17 -encoding UTF-8 -cp "$CP" -d "$AUS" app/src/main/java/de/smartphone/aufnahme/*.java
 # 2. Tests übersetzen und starten (Arbeitsordner app/, wie bei Gradle)
 javac --release 17 -encoding UTF-8 -cp "$CP:$AUS" -d "$AUS" app/src/test/java/de/smartphone/aufnahme/*.java
-cd app && java -cp "$AUS:$CP" org.junit.runner.JUnitCore de.smartphone.aufnahme.UpdateSucheTest de.smartphone.aufnahme.DiktatSammlerTest
+cd app && java -cp "$AUS:$CP" org.junit.runner.JUnitCore de.smartphone.aufnahme.UpdateSucheTest de.smartphone.aufnahme.DiktatSammlerTest de.smartphone.aufnahme.StimmenListeTest

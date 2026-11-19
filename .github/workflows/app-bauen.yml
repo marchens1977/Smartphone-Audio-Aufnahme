@@ -57,6 +57,10 @@ jobs:
             adb shell am start -n de.smartphone.aufnahme/.MainActivity --es modus Vorlesen
             sleep 4
             adb exec-out screencap -p > bildschirm-vorlesen.png
+            adb shell am force-stop de.smartphone.aufnahme
+            adb shell am start -n de.smartphone.aufnahme/.MainActivity --es modus Vorlesen --ez stimmenwahl true
+            sleep 12
+            adb exec-out screencap -p > bildschirm-stimmen.png
       - name: Bildschirmfoto und Testbericht aufheben
         if: always()
         uses: actions/upload-artifact@v4
@@ -73,7 +77,7 @@ jobs:
         run: |
           cp app/build/outputs/apk/debug/app-debug.apk Smartphone-Aufnahme.apk
           TAG="app-v1.0.${GITHUB_RUN_NUMBER}"
-          DATEIEN="Smartphone-Aufnahme.apk bildschirm.png bildschirm-diktat.png bildschirm-vorlesen.png"
+          DATEIEN="Smartphone-Aufnahme.apk bildschirm.png bildschirm-diktat.png bildschirm-vorlesen.png bildschirm-stimmen.png"
           if gh release view "$TAG" > /dev/null 2>&1; then
             # Derselbe Bau wurde nochmal gestartet: Dateien ersetzen statt Fehler
             gh release upload "$TAG" $DATEIEN --clobber
