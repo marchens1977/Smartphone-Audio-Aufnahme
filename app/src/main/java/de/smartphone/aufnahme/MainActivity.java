@@ -23,6 +23,7 @@ import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
+import android.speech.tts.Voice;
 import android.text.InputType;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -36,6 +37,8 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.Locale;
 
@@ -61,7 +64,7 @@ public class MainActivity extends Activity {
     private Runnable nachErlaubnis;
 
     private Button knopfStimme, knopfMedien, knopfDiktat, knopfVorlesen, aufnahmeKnopf, pauseKnopf, diktatKnopf,
-            probeKnopf, speichernKnopf;
+            probeKnopf, speichernKnopf, stimmeKnopf;
     private final Button[] tempoKnoepfe = new Button[3];
     private TextView info, uhr, status, diktatStatus, vorleseStatus;
     private ProgressBar pegel;
@@ -154,6 +157,13 @@ public class MainActivity extends Activity {
         vreihe1.addView(aktionsKnopf("📋 Einfügen", v -> einfuegen()), gewicht());
         vreihe1.addView(aktionsKnopf("🗑 Leeren", v -> leereVorleseText()), gewicht());
         bereichVorlesen.addView(vreihe1);
+        stimmeKnopf = aktionsKnopf("", v -> zeigeStimmen());
+        zeigeStimmenName();
+        LinearLayout.LayoutParams slp = gewicht();
+        slp.width = -1;
+        slp.weight = 0;
+        slp.topMargin = dp(10);
+        bereichVorlesen.addView(stimmeKnopf, slp);
         TextView tempoTitel = text("Tempo:", 15, FARBE_HELL);
         tempoTitel.setGravity(Gravity.START);
         tempoTitel.setPadding(dp(4), dp(10), 0, 0);
@@ -232,6 +242,9 @@ public class MainActivity extends Activity {
         String start = getIntent().getStringExtra("modus");   // nur fuer die automatischen Bildschirmfotos
         setzeModus(start != null ? start : einstellungen.getString("modus", AufnahmeService.ART_MIKRO));
         if (Build.VERSION.SDK_INT >= 33) frageRechte(Manifest.permission.POST_NOTIFICATIONS);
+        if (getIntent().getBooleanExtra("stimmenwahl", false)) {   // nur fuer das automatische Bildschirmfoto
+            handler.postDelayed(this::zeigeStimmen, 1500);
+        }
 
         updates = new UpdateSuche(this);
         if (start == null) updates.automatisch();   // von selbst nach Updates suchen (nicht bei Bildschirmfotos)
@@ -269,6 +282,7 @@ public class MainActivity extends Activity {
     protected void onDestroy() {
         super.onDestroy();
         if (stimme != null && !speichert) stimme.shutdown();
+        schliesseProbeStimmen();
     }
 
     private void setzeModus(String m) {
@@ -627,7 +641,17 @@ public class MainActivity extends Activity {
     private void starteStimme() {
         if (stimme != null) return;
         vorleseStatus.setText("Vorlese-Stimme wird vorbereitet …");
+        String programm = einstellungen.getString("tts_programm", null);
         stimme = new TextToSpeech(this, ergebnis -> {
+            if (ergebnis != TextToSpeech.SUCCESS && programm != null) {
+                // Gewähltes Vorlese-Programm fehlt (z. B. deinstalliert) → Handy-Standard nehmen
+                einstellungen.edit().remove("tts_programm").remove("tts_stimme").remove("tts_anzeige").apply();
+                if (stimme != null) stimme.shutdown();
+                stimme = null;
+                zeigeStimmenName();
+                starteStimme();
+                return;
+            }
             if (ergebnis != TextToSpeech.SUCCESS) {
                 vorleseStatus.setText("Keine Vorlese-Stimme gefunden. Einstellungen → Allgemeine Verwaltung → "
                         + "Text-zu-Sprache → bevorzugtes Modul wählen (z. B. Google).");
@@ -640,10 +664,159 @@ public class MainActivity extends Activity {
                         + "Text-zu-Sprache → ⚙ beim Modul → Sprachdaten installieren → Deutsch.");
                 return;
             }
+            setzeGespeicherteStimme(stimme);
             stimme.setSpeechRate(TEMPO[einstellungen.getInt("tempo", 1)]);
             stimmeBereit = true;
             vorleseStatus.setText("Bereit. Text einfügen, dann „▶ Anhören“ oder „💾 Als Aufnahme speichern“.");
-        });
+        }, programm);
+    }
+
+    /** Die in „Stimme wählen“ gespeicherte Stimme einstellen (falls es sie noch gibt). */
+    private void setzeGespeicherteStimme(TextToSpeech tts) {
+        String name = einstellungen.getString("tts_stimme", null);
+        if (name == null) return;
+        try {
+            for (Voice v : tts.getVoices()) {
+                if (v.getName().equals(name)) { tts.setVoice(v); return; }
+            }
+        } catch (Exception ignoriert) { }
+    }
+
+    private void zeigeStimmenName() {
+        String name = einstellungen.getString("tts_anzeige", null);
+        stimmeKnopf.setText("🗣 Stimme: " + (name == null ? "Handy-Standard" : name) + "  ▾");
+    }
+
+    // ------------------------------------------------------------ Stimme wählen
+    private static final String PROBESATZ = "Hallo! So klinge ich. Gefällt dir meine Stimme?";
+    private final Map<String, TextToSpeech> probeStimmen = new HashMap<>();
+    private final Map<String, Voice> probeVoices = new HashMap<>();
+    private boolean suchtStimmen = false;
+
+    /** Sammelt die Stimmen aller Vorlese-Programme des Handys und zeigt sie zur Auswahl. */
+    private void zeigeStimmen() {
+        if (speichert) {
+            vorleseStatus.setText("Bitte warten, bis die Aufnahme fertig erstellt ist.");
+            return;
+        }
+        if (suchtStimmen) return;
+        suchtStimmen = true;
+        stoppeVorlesen();
+        schliesseProbeStimmen();
+        vorleseStatus.setText("Suche Stimmen auf dem Handy …");
+        List<String[]> programme = new ArrayList<>();   // {Paket, Name}
+        for (android.content.pm.ResolveInfo r : getPackageManager().queryIntentServices(
+                new Intent(TextToSpeech.Engine.INTENT_ACTION_TTS_SERVICE), 0)) {
+            if (r.serviceInfo == null) continue;
+            CharSequence n = r.loadLabel(getPackageManager());
+            programme.add(new String[]{r.serviceInfo.packageName, n == null ? "" : n.toString()});
+        }
+        List<StimmenListe.Eintrag> alle = new ArrayList<>();
+        int[] offen = {programme.size()};
+        boolean[] gezeigt = {false};
+        Runnable fertig = () -> {
+            if (gezeigt[0]) return;
+            gezeigt[0] = true;
+            suchtStimmen = false;
+            zeigeStimmenAuswahl(StimmenListe.aufbereiten(alle));
+        };
+        if (programme.isEmpty()) { fertig.run(); return; }
+        for (String[] p : programme) {
+            TextToSpeech[] halter = new TextToSpeech[1];
+            halter[0] = new TextToSpeech(this, ergebnis -> {
+                if (ergebnis == TextToSpeech.SUCCESS && !gezeigt[0]) {
+                    try {
+                        for (Voice v : halter[0].getVoices()) {
+                            boolean installiert = !v.getFeatures().contains(
+                                    TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED);
+                            alle.add(new StimmenListe.Eintrag(p[0], p[1], v.getName(),
+                                    v.getLocale().toLanguageTag(), v.getQuality(),
+                                    v.isNetworkConnectionRequired(), installiert));
+                            probeVoices.put(p[0] + "|" + v.getName(), v);
+                        }
+                    } catch (Exception ignoriert) { }
+                }
+                if (--offen[0] <= 0) fertig.run();
+            }, p[0]);
+            probeStimmen.put(p[0], halter[0]);
+        }
+        handler.postDelayed(fertig, 8000);   // falls ein Programm nicht antwortet
+    }
+
+    private void zeigeStimmenAuswahl(List<StimmenListe.Eintrag> liste) {
+        if (isFinishing() || isDestroyed()) { schliesseProbeStimmen(); return; }
+        String[] namen = new String[liste.size() + 1];
+        namen[0] = "📱 Handy-Standard";
+        for (int i = 0; i < liste.size(); i++) namen[i + 1] = liste.get(i).anzeige;
+        int gewaehlt = StimmenListe.finde(liste, einstellungen.getString("tts_programm", null),
+                einstellungen.getString("tts_stimme", null)) + 1;
+        if (gewaehlt == 0 && einstellungen.getString("tts_stimme", null) != null) gewaehlt = -1;
+        int[] auswahl = {gewaehlt};   // -1 = gespeicherte Stimme gibt es nicht mehr, noch nichts gewählt
+        vorleseStatus.setText(liste.size() + " deutsche Stimmen gefunden. Antippen = Probe hören. "
+                + "Mehr Stimmen gibt es kostenlos: Handy-Einstellungen → Allgemeine Verwaltung → "
+                + "Text-zu-Sprache → ⚙ beim Programm → Sprachdaten installieren → Deutsch.");
+        new AlertDialog.Builder(this)
+                .setTitle("🗣 Stimme wählen (antippen = Probe)")
+                .setSingleChoiceItems(namen, gewaehlt, (d, i) -> {
+                    auswahl[0] = i;
+                    spieleProbe(i == 0 ? null : liste.get(i - 1));
+                })
+                .setPositiveButton("Übernehmen", (d, w) -> {
+                    if (auswahl[0] >= 0) uebernehmeStimme(auswahl[0] == 0 ? null : liste.get(auswahl[0] - 1));
+                })
+                .setNegativeButton("Abbrechen", null)
+                .setOnDismissListener(d -> schliesseProbeStimmen())
+                .show();
+    }
+
+    private void spieleProbe(StimmenListe.Eintrag e) {
+        for (TextToSpeech t : probeStimmen.values()) t.stop();
+        if (e == null) {   // Handy-Standard: mit der normalen Stimme ohne Auswahl
+            TextToSpeech t = probeStimmen.get("standard");
+            if (t == null) {
+                TextToSpeech[] h = new TextToSpeech[1];
+                h[0] = new TextToSpeech(this, ergebnis -> {
+                    if (ergebnis != TextToSpeech.SUCCESS) return;
+                    h[0].setLanguage(Locale.GERMANY);
+                    h[0].setSpeechRate(TEMPO[einstellungen.getInt("tempo", 1)]);
+                    h[0].speak(PROBESATZ, TextToSpeech.QUEUE_FLUSH, null, "probe");
+                });
+                probeStimmen.put("standard", h[0]);
+            } else {
+                t.speak(PROBESATZ, TextToSpeech.QUEUE_FLUSH, null, "probe");
+            }
+            return;
+        }
+        TextToSpeech t = probeStimmen.get(e.programm);
+        Voice v = probeVoices.get(e.programm + "|" + e.name);
+        if (t == null || v == null) return;
+        t.setVoice(v);
+        t.setSpeechRate(TEMPO[einstellungen.getInt("tempo", 1)]);
+        t.speak(PROBESATZ, TextToSpeech.QUEUE_FLUSH, null, "probe");
+        if (e.internet) vorleseStatus.setText("Diese Stimme braucht Internet. Ohne Verbindung bleibt sie stumm.");
+    }
+
+    private void uebernehmeStimme(StimmenListe.Eintrag e) {
+        SharedPreferences.Editor ed = einstellungen.edit();
+        if (e == null) {
+            ed.remove("tts_programm").remove("tts_stimme").remove("tts_anzeige");
+        } else {
+            ed.putString("tts_programm", e.programm).putString("tts_stimme", e.name).putString("tts_anzeige", e.anzeige);
+        }
+        ed.apply();
+        zeigeStimmenName();
+        if (stimme != null && !speichert) stimme.shutdown();
+        stimme = null;
+        stimmeBereit = false;
+        starteStimme();
+    }
+
+    private void schliesseProbeStimmen() {
+        for (TextToSpeech t : probeStimmen.values()) {
+            try { t.stop(); t.shutdown(); } catch (Exception ignoriert) { }
+        }
+        probeStimmen.clear();
+        probeVoices.clear();
     }
 
     private String vorleseTextOderHinweis() {
