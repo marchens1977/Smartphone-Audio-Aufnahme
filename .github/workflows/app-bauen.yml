@@ -1,6 +1,8 @@
 # Baut die Android-App (APK), testet sie auf einem simulierten Handy
 # und stellt sie zum Herunterladen bereit:
 # https://github.com/marchens1977/Smartphone-Audio-Aufnahme/releases/latest/download/Smartphone-Aufnahme.apk
+# Jeder Bau bekommt eine fortlaufende Nummer N: App-Version 1.0.N, Release "app-v1.0.N".
+# Daran erkennt die Update-Suche in der App, dass es etwas Neues gibt.
 name: App bauen
 
 on:
@@ -29,6 +31,8 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+      - name: Tests ohne Handy (Update-Suche)
+        run: gradle --no-daemon testDebugUnitTest
       - name: App bauen
         run: gradle --no-daemon assembleDebug assembleDebugAndroidTest
       - name: Auf simuliertem Handy testen und Bildschirmfoto machen
@@ -61,12 +65,20 @@ jobs:
           path: |
             bildschirm*.png
             app/build/reports/androidTests/
-      - name: Zum Herunterladen bereitstellen
+            app/build/reports/tests/
+      - name: Zum Herunterladen bereitstellen (nur main)
+        if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp app/build/outputs/apk/debug/app-debug.apk Smartphone-Aufnahme.apk
-          gh release delete neueste-version --yes --cleanup-tag || true
-          gh release create neueste-version Smartphone-Aufnahme.apk bildschirm.png bildschirm-diktat.png bildschirm-vorlesen.png --latest \
-            --title "Smartphone-Aufnahme (neueste Version)" \
-            --notes "Zum Installieren am Handy: Smartphone-Aufnahme.apk antippen. Anleitung siehe README."
+          TAG="app-v1.0.${GITHUB_RUN_NUMBER}"
+          DATEIEN="Smartphone-Aufnahme.apk bildschirm.png bildschirm-diktat.png bildschirm-vorlesen.png"
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            # Derselbe Bau wurde nochmal gestartet: Dateien ersetzen statt Fehler
+            gh release upload "$TAG" $DATEIEN --clobber
+          else
+            gh release create "$TAG" $DATEIEN --latest \
+              --title "Smartphone-Aufnahme 1.0.${GITHUB_RUN_NUMBER}" \
+              --notes "Zum Installieren am Handy: Smartphone-Aufnahme.apk antippen. Anleitung siehe README."
+          fi

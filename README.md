@@ -21,7 +21,7 @@ Die App kommt nicht aus dem Play Store, sondern direkt von hier. Android fragt d
 ob du das erlaubst.
 
 1. Öffne am Handy in **Chrome** diesen Link:
-   **https://github.com/marchens1977/Smartphone-Audio-Aufnahme/releases/download/neueste-version/Smartphone-Aufnahme.apk**
+   **https://github.com/marchens1977/Smartphone-Audio-Aufnahme/releases/latest/download/Smartphone-Aufnahme.apk**
 2. Chrome fragt eventuell, ob die Datei heruntergeladen werden soll → **Herunterladen** / **Trotzdem herunterladen**.
 3. Tippe unten auf **Öffnen** (oder öffne die Datei über „Eigene Dateien“ → **Downloads**).
 4. Android sagt: „Aus Sicherheitsgründen … unbekannte Apps …“ → **Einstellungen** → Schalter bei
@@ -30,7 +30,9 @@ ob du das erlaubst.
    (Die Warnung kommt, weil die App nicht aus dem Play Store ist.)
 6. **Öffnen**. Die App heißt **Smartphone-Aufnahme** (oranges Mikrofon auf blauem Kreis).
 
-**Neue Version installieren:** einfach denselben Link nochmal öffnen und installieren.
+**Neue Version installieren:** Die App sucht beim Öffnen selbst nach Updates und zeigt
+„Update verfügbar“ → **Jetzt herunterladen** → auf die Datei tippen → **Aktualisieren**.
+Von Hand: oben rechts auf **⚙** → **Nach Updates suchen**. Oder denselben Link nochmal öffnen.
 Deine Aufnahmen bleiben erhalten.
 
 ## Benutzen
@@ -127,6 +129,7 @@ Die Tonaufnahmen findest du auch in Musik-Apps. In der App selbst kannst du sie 
 - `AacSchreiber.java` – wandelt den Ton in das platzsparende Format AAC (`.m4a`) um, ca. 1 MB pro Minute.
 - `Speicher.java` – legt die Dateien im normalen Handy-Speicher ab.
 - `Vorleser.java` – macht mit der Vorlese-Stimme des Handys (Text-zu-Sprache) aus Text eine Tondatei.
+- `UpdateSuche.java` – fragt bei GitHub nach der neuesten Version (Release `app-v1.0.N`) und bietet sie an.
 - **GitHub baut die App automatisch** (`.github/workflows/app-bauen.yml`), sobald sich etwas ändert:
   Es testet sie auf einem simulierten Android-Handy und stellt die fertige `.apk`-Datei zum Herunterladen bereit.
   Eine `.apk` ist eine Installationsdatei für Android-Apps.

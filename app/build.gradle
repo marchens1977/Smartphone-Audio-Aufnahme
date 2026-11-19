@@ -2,6 +2,10 @@ plugins {
     id 'com.android.application'
 }
 
+// Versionsnummer: kommt beim automatischen Bau von GitHub (fortlaufende Nummer N).
+// App-Version "1.0.N" passt zum Release-Namen "app-v1.0.N" - so erkennt die Update-Suche neue Versionen.
+def bauNummer = (System.getenv('GITHUB_RUN_NUMBER') ?: '1') as Integer
+
 android {
     namespace 'de.smartphone.aufnahme'
     compileSdk 34
@@ -10,8 +14,8 @@ android {
         applicationId 'de.smartphone.aufnahme'
         minSdk 29          // Android 10 - ab da kann man Medienaudio aufnehmen
         targetSdk 34
-        versionCode 1
-        versionName '1.0'
+        versionCode bauNummer
+        versionName "1.0.${bauNummer}"
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
 
@@ -43,4 +47,6 @@ dependencies {
     androidTestImplementation 'androidx.test:core:1.6.1'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
     androidTestImplementation 'junit:junit:4.13.2'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20240303'   // echtes JSON fuer Tests ohne Handy
 }
